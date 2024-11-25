@@ -2,6 +2,7 @@ package org.dti.se.miniproject1backend1.inners.usecases.authentications;
 
 import org.dti.se.miniproject1backend1.inners.models.entities.Account;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.authentications.RegisterByEmailAndPasswordRequest;
+import org.dti.se.miniproject1backend1.outers.configurations.SecurityConfiguration;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountExistsException;
 import org.dti.se.miniproject1backend1.outers.repositories.ones.AccountRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,8 @@ public class RegisterAuthenticationUseCase {
     @Autowired
     AccountRepository accountRepository;
 
+    @Autowired
+    SecurityConfiguration securityConfiguration;
 
     public Mono<Account> registerByEmailAndPassword(RegisterByEmailAndPasswordRequest request) {
         return accountRepository
@@ -25,7 +28,7 @@ public class RegisterAuthenticationUseCase {
                         .id(UUID.randomUUID())
                         .name(request.getName())
                         .email(request.getEmail())
-                        .password(request.getPassword())
+                        .password(securityConfiguration.encode(request.getPassword()))
                         .phone(request.getPhone())
                         .dob(request.getDob())
                         .referralCode(request.getReferralCode())
