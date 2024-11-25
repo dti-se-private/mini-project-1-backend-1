@@ -54,7 +54,7 @@ public class BasicEventUseCase {
                 );
     }
 
-    public Flux<RetrieveEventResponse> getAllEvents(String category) {
+    public Flux<RetrieveEventResponse> getAllEvents(String category, String page, String size) {
         Flux<Event> eventFlux;
 
         if ("all".equalsIgnoreCase(category) || category == null || category.isEmpty()) {
@@ -63,7 +63,12 @@ public class BasicEventUseCase {
             eventFlux = eventRepository.findByCategoryIgnoreCase(category);
         }
 
+        int pageNumber = (page != null && !page.isEmpty()) ? Integer.parseInt(page) : 0;
+        int pageSize = (size != null && !size.isEmpty()) ? Integer.parseInt(size) : 10;
+
         return eventFlux
+                .skip((long) pageNumber * pageSize)
+                .take(pageSize)
                 .flatMap(event ->
                         eventTicketRepository.findByEventId(event.getId())
                                 .map(ticket ->
