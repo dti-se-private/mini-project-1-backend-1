@@ -34,7 +34,7 @@ public class JwtAuthenticationUseCase {
         return JWT
                 .create()
                 .withIssuer("server")
-                .withClaim("account_id", account.getId().toString())
+                .withClaim("account_id", Objects.requireNonNull(account.getId()).toString())
                 .withExpiresAt(Date.from(expirationTime.toInstant()))
                 .withIssuedAt(Date.from(now.toInstant()))
                 .sign(algorithm());
