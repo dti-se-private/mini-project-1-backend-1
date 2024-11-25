@@ -66,47 +66,8 @@ public class BasicEventUseCase {
         return eventFlux
                 .flatMap(event ->
                         eventTicketRepository.findByEventId(event.getId())
-<<<<<<< Updated upstream:src/main/java/org/dti/se/miniproject1backend1/inners/usecases/events/BasicEventUseCase.java
-                                .flatMap(ticket ->
-                                        eventVoucherRepository.findByEventId(event.getId())
-                                                .collectList()
-                                                .flatMap(eventVouchers ->
-                                                        Flux.fromIterable(eventVouchers)
-                                                                .map(EventVoucher::getVoucherId)
-                                                                .collectList()
-                                                                .flatMap(voucherIds ->
-                                                                        voucherRepository.findAllById(voucherIds)
-                                                                                .collectList()
-                                                                                .map(vouchers -> {
-                                                                                    List<RetrieveVoucherResponse> voucherDTOs = vouchers.stream()
-                                                                                            .map(voucher -> RetrieveVoucherResponse.builder()
-                                                                                                    .id(voucher.getId())
-                                                                                                    .name(voucher.getName())
-                                                                                                    .description(voucher.getDescription())
-                                                                                                    .variableAmount(voucher.getVariableAmount())
-                                                                                                    .startedAt(voucher.getStartedAt())
-                                                                                                    .endedAt(voucher.getEndedAt())
-                                                                                                    .build())
-                                                                                            .collect(Collectors.toList());
-
-                                                                                    return RetrieveEventResponse.builder()
-                                                                                            .id(event.getId())
-                                                                                            .accountId(event.getAccountId())
-                                                                                            .name(event.getName())
-                                                                                            .description(event.getDescription())
-                                                                                            .location(event.getLocation())
-                                                                                            .category(event.getCategory())
-                                                                                            .time(event.getTime())
-                                                                                            .price(ticket.getPrice())
-                                                                                            .slots(ticket.getSlots())
-                                                                                            .vouchers(voucherDTOs)
-                                                                                            .build();
-                                                                                })
-                                                                )
-                                                )
-=======
                                 .map(ticket ->
-                                        EventResponse.builder()
+                                        RetrieveEventResponse.builder()
                                                 .id(event.getId())
                                                 .accountId(event.getAccountId())
                                                 .name(event.getName())
@@ -116,7 +77,6 @@ public class BasicEventUseCase {
                                                 .price(ticket.getPrice())
                                                 .slots(ticket.getSlots())
                                                 .build()
->>>>>>> Stashed changes:src/main/java/org/dti/se/miniproject1backend1/inners/usecases/EventUseCase.java
                                 )
                 );
     }
