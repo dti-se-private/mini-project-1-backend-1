@@ -66,6 +66,7 @@ public class BasicEventUseCase {
         return eventFlux
                 .flatMap(event ->
                         eventTicketRepository.findByEventId(event.getId())
+<<<<<<< Updated upstream:src/main/java/org/dti/se/miniproject1backend1/inners/usecases/events/BasicEventUseCase.java
                                 .flatMap(ticket ->
                                         eventVoucherRepository.findByEventId(event.getId())
                                                 .collectList()
@@ -103,6 +104,19 @@ public class BasicEventUseCase {
                                                                                 })
                                                                 )
                                                 )
+=======
+                                .map(ticket ->
+                                        EventResponse.builder()
+                                                .id(event.getId())
+                                                .accountId(event.getAccountId())
+                                                .name(event.getName())
+                                                .location(event.getLocation())
+                                                .category(event.getCategory())
+                                                .time(event.getTime())
+                                                .price(ticket.getPrice())
+                                                .slots(ticket.getSlots())
+                                                .build()
+>>>>>>> Stashed changes:src/main/java/org/dti/se/miniproject1backend1/inners/usecases/EventUseCase.java
                                 )
                 );
     }

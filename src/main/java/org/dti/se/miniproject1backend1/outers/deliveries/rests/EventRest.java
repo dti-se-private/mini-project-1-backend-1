@@ -66,10 +66,17 @@ public class EventRest {
     }
 
     @GetMapping("/{id}")
+<<<<<<< Updated upstream
     public Mono<ResponseEntity<ResponseBody<RetrieveEventResponse>>> getEventDetail(@PathVariable UUID id) {
         return basicEventUseCase.getEventById(id)
                 .map(event -> ResponseBody.<RetrieveEventResponse>builder()
                         .message("Events by category fetched.")
+=======
+    public Mono<ResponseEntity<ResponseBody<EventResponse>>> getEventDetail(@PathVariable UUID id) {
+        return eventUseCase.getEventById(id)
+                .map(event -> ResponseBody.<EventResponse>builder()
+                        .message("Event detail fetched.")
+>>>>>>> Stashed changes
                         .data(event)
                         .build()
                         .toEntity(HttpStatus.OK)
