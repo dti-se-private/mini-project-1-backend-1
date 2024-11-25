@@ -5,9 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
-import org.springframework.security.web.server.authentication.ServerAuthenticationConverter;
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
@@ -21,15 +19,11 @@ public class AuthenticationWebFilterImpl extends AuthenticationWebFilter {
 
     public AuthenticationWebFilterImpl(ReactiveAuthenticationManager authenticationManager) {
         super(authenticationManager);
-        setServerAuthenticationConverter(new ServerAuthenticationConverter() {
-            @Override
-            public Mono<Authentication> convert(ServerWebExchange exchange) {
-                return getAccessToken(exchange)
-                        .flatMap(accessToken -> sessionRepository.getByAccessToken(accessToken))
-                        .map(session -> new UsernamePasswordAuthenticationToken(null, session))
-                        .flatMap(authenticationManager::authenticate);
-            }
-        });
+        setServerAuthenticationConverter(exchange -> getAccessToken(exchange)
+                .flatMap(accessToken -> sessionRepository.getByAccessToken(accessToken))
+                .map(session -> new UsernamePasswordAuthenticationToken(null, session))
+                .flatMap(authenticationManager::authenticate)
+        );
         setRequiresAuthenticationMatcher(ServerWebExchangeMatchers.anyExchange());
     }
 

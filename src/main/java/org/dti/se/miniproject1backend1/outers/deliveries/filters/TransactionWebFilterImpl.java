@@ -1,6 +1,6 @@
 package org.dti.se.miniproject1backend1.outers.deliveries.filters;
 
-import org.dti.se.miniproject1backend1.outers.holders.WebHolder;
+import org.dti.se.miniproject1backend1.outers.deliveries.holders.WebHolder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;

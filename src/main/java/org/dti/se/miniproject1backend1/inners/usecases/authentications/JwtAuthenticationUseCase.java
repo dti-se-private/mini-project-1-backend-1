@@ -1,4 +1,4 @@
-package org.dti.se.miniproject1backend1.inners.usecases;
+package org.dti.se.miniproject1backend1.inners.usecases.authentications;
 
 
 import com.auth0.jwt.JWT;
@@ -18,7 +18,7 @@ import java.util.Objects;
 
 @Service
 @Configuration
-public class JwtUseCase {
+public class JwtAuthenticationUseCase {
 
     @Autowired
     private Environment environment;

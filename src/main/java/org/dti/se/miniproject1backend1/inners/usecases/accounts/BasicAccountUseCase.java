@@ -1,4 +1,4 @@
-package org.dti.se.miniproject1backend1.inners.usecases;
+package org.dti.se.miniproject1backend1.inners.usecases.accounts;
 
 import org.dti.se.miniproject1backend1.inners.models.entities.Account;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountNotFoundException;
@@ -10,7 +10,7 @@ import reactor.core.publisher.Mono;
 import java.util.UUID;
 
 @Service
-public class AccountUseCase {
+public class BasicAccountUseCase {
     @Autowired
     private AccountRepository accountRepository;
 

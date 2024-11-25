@@ -13,11 +13,17 @@ import org.springframework.http.ResponseEntity;
 @NoArgsConstructor
 @Accessors(chain = true)
 public class ResponseBody<T> extends Model {
+    private static final boolean IS_INCLUDE_EXCEPTION = true;
+
+    protected Throwable exception;
     private String message;
     private T data;
-    private Throwable error;
 
     public ResponseEntity<ResponseBody<T>> toEntity(HttpStatus status) {
+        if (!IS_INCLUDE_EXCEPTION) {
+            setException(null);
+        }
+
         return ResponseEntity.status(status).body(this);
     }
 

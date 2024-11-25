@@ -1,8 +1,8 @@
 package org.dti.se.miniproject1backend1.outers.deliveries.rests;
 
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.EventResponse;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.ResponseBody;
-import org.dti.se.miniproject1backend1.inners.usecases.EventUseCase;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveEventResponse;
+import org.dti.se.miniproject1backend1.inners.usecases.events.BasicEventUseCase;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,23 +17,23 @@ import java.util.UUID;
 @RequestMapping(value = "/events")
 public class EventRest {
     @Autowired
-    EventUseCase eventUseCase;
+    BasicEventUseCase basicEventUseCase;
 
     @GetMapping("/hero")
-    public Mono<ResponseEntity<ResponseBody<List<EventResponse>>>> getHero() {
-        return eventUseCase.getTop3Events()
+    public Mono<ResponseEntity<ResponseBody<List<RetrieveEventResponse>>>> getHero() {
+        return basicEventUseCase.getTop3Events()
                 .collectList()
-                .map(eventList -> ResponseBody.<List<EventResponse>>builder()
+                .map(eventList -> ResponseBody.<List<RetrieveEventResponse>>builder()
                         .message("Hero fetched.")
                         .data(eventList)
                         .build()
                         .toEntity(HttpStatus.OK)
                 )
                 .onErrorResume(e -> {
-                    ResponseBody<List<EventResponse>> responseBody = ResponseBody
-                            .<List<EventResponse>>builder()
+                    ResponseBody<List<RetrieveEventResponse>> responseBody = ResponseBody
+                            .<List<RetrieveEventResponse>>builder()
                             .message("Error occurred while fetching hero events.")
-                            .error(e)
+                            .exception(e)
                             .data(Collections.emptyList())
                             .build();
                     return Mono.just(ResponseEntity
@@ -43,20 +43,20 @@ public class EventRest {
     }
 
     @GetMapping
-    public Mono<ResponseEntity<ResponseBody<List<EventResponse>>>> getAllByCategory(@RequestParam(required = false) String category) {
-        return eventUseCase.getAllEvents(category)
+    public Mono<ResponseEntity<ResponseBody<List<RetrieveEventResponse>>>> getAllByCategory(@RequestParam(required = false) String category) {
+        return basicEventUseCase.getAllEvents(category)
                 .collectList()
-                .map(eventList -> ResponseBody.<List<EventResponse>>builder()
+                .map(eventList -> ResponseBody.<List<RetrieveEventResponse>>builder()
                         .message("Events by category fetched.")
                         .data(eventList)
                         .build()
                         .toEntity(HttpStatus.OK)
                 )
                 .onErrorResume(e -> {
-                    ResponseBody<List<EventResponse>> responseBody = ResponseBody
-                            .<List<EventResponse>>builder()
+                    ResponseBody<List<RetrieveEventResponse>> responseBody = ResponseBody
+                            .<List<RetrieveEventResponse>>builder()
                             .message("Error occurred while fetching events by category.")
-                            .error(e)
+                            .exception(e)
                             .data(Collections.emptyList())
                             .build();
                     return Mono.just(ResponseEntity
@@ -66,19 +66,19 @@ public class EventRest {
     }
 
     @GetMapping("/{id}")
-    public Mono<ResponseEntity<ResponseBody<EventResponse>>> getEventDetail(@PathVariable UUID id) {
-        return eventUseCase.getEventById(id)
-                .map(event -> ResponseBody.<EventResponse>builder()
+    public Mono<ResponseEntity<ResponseBody<RetrieveEventResponse>>> getEventDetail(@PathVariable UUID id) {
+        return basicEventUseCase.getEventById(id)
+                .map(event -> ResponseBody.<RetrieveEventResponse>builder()
                         .message("Events by category fetched.")
                         .data(event)
                         .build()
                         .toEntity(HttpStatus.OK)
                 )
                 .onErrorResume(e -> {
-                    ResponseBody<EventResponse> responseBody = ResponseBody
-                            .<EventResponse>builder()
+                    ResponseBody<RetrieveEventResponse> responseBody = ResponseBody
+                            .<RetrieveEventResponse>builder()
                             .message("Error occurred while fetching events by category.")
-                            .error(e)
+                            .exception(e)
                             .data(null)
                             .build();
                     return Mono.just(ResponseEntity

@@ -2,7 +2,9 @@ package org.dti.se.miniproject1backend1.outers.deliveries.rests;
 
 import org.dti.se.miniproject1backend1.inners.models.entities.Account;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.ResponseBody;
-import org.dti.se.miniproject1backend1.inners.usecases.AccountUseCase;
+import org.dti.se.miniproject1backend1.inners.usecases.accounts.BasicAccountUseCase;
+import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountExistsException;
+import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,17 +13,18 @@ import reactor.core.publisher.Mono;
 
 import java.util.UUID;
 
+
 @RestController
 @RequestMapping(value = "/accounts")
 public class AccountRest {
     @Autowired
-    private AccountUseCase accountUseCase;
+    private BasicAccountUseCase basicAccountUseCase;
 
     @PostMapping
     public Mono<ResponseEntity<ResponseBody<Account>>> saveOne(
             @RequestBody Account account
     ) {
-        return accountUseCase
+        return basicAccountUseCase
                 .saveOne(account)
                 .map(savedAccount -> ResponseBody
                         .<Account>builder()
@@ -30,20 +33,22 @@ public class AccountRest {
                         .build()
                         .toEntity(HttpStatus.CREATED)
                 )
+                .onErrorResume(AccountExistsException.class, e -> Mono
+                        .just(ResponseBody
+                                .<Account>builder()
+                                .message("Account already exists.")
+                                .build()
+                                .toEntity(HttpStatus.CONFLICT)
+                        )
+                )
                 .onErrorResume(e -> Mono
-                        .fromCallable(() -> switch (e.getClass().getSimpleName()) {
-                            case "AccountExistException" -> ResponseBody
-                                    .<Account>builder()
-                                    .message("Account already exists.")
-                                    .build()
-                                    .toEntity(HttpStatus.CONFLICT);
-                            default -> ResponseBody
-                                    .<Account>builder()
-                                    .message("Internal server error.")
-                                    .error(e)
-                                    .build()
-                                    .toEntity(HttpStatus.INTERNAL_SERVER_ERROR);
-                        })
+                        .just(ResponseBody
+                                .<Account>builder()
+                                .message("Internal server error.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+                        )
                 );
     }
 
@@ -51,7 +56,7 @@ public class AccountRest {
     public Mono<ResponseEntity<ResponseBody<Account>>> findOneById(
             @PathVariable("id") UUID id
     ) {
-        return accountUseCase
+        return basicAccountUseCase
                 .findOneById(id)
                 .map(foundAccount -> ResponseBody
                         .<Account>builder()
@@ -60,20 +65,23 @@ public class AccountRest {
                         .build()
                         .toEntity(HttpStatus.OK)
                 )
+                .onErrorResume(AccountNotFoundException.class, e -> Mono
+                        .just(ResponseBody
+                                .<Account>builder()
+                                .message("Account not found.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.NOT_FOUND)
+                        )
+                )
                 .onErrorResume(e -> Mono
-                        .fromCallable(() -> switch (e.getClass().getSimpleName()) {
-                            case "AccountNotFoundException" -> ResponseBody
-                                    .<Account>builder()
-                                    .message("Account not found.")
-                                    .build()
-                                    .toEntity(HttpStatus.NOT_FOUND);
-                            default -> ResponseBody
-                                    .<Account>builder()
-                                    .message("Internal server error.")
-                                    .error(e)
-                                    .build()
-                                    .toEntity(HttpStatus.INTERNAL_SERVER_ERROR);
-                        })
+                        .just(ResponseBody
+                                .<Account>builder()
+                                .message("Internal server error.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+                        )
                 );
     }
 
@@ -82,7 +90,7 @@ public class AccountRest {
             @PathVariable("id") UUID id,
             @RequestBody Account account
     ) {
-        return accountUseCase
+        return basicAccountUseCase
                 .patchOneById(id, account)
                 .map(updatedAccount -> ResponseBody
                         .<Account>builder()
@@ -91,20 +99,23 @@ public class AccountRest {
                         .build()
                         .toEntity(HttpStatus.OK)
                 )
+                .onErrorResume(AccountNotFoundException.class, e -> Mono
+                        .just(ResponseBody
+                                .<Account>builder()
+                                .message("Account not found.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.NOT_FOUND)
+                        )
+                )
                 .onErrorResume(e -> Mono
-                        .fromCallable(() -> switch (e.getClass().getSimpleName()) {
-                            case "AccountNotFoundException" -> ResponseBody
-                                    .<Account>builder()
-                                    .message("Account not found")
-                                    .build()
-                                    .toEntity(HttpStatus.NOT_FOUND);
-                            default -> ResponseBody
-                                    .<Account>builder()
-                                    .message("Internal server error.")
-                                    .error(e)
-                                    .build()
-                                    .toEntity(HttpStatus.INTERNAL_SERVER_ERROR);
-                        })
+                        .just(ResponseBody
+                                .<Account>builder()
+                                .message("Internal server error.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+                        )
                 );
     }
 
@@ -112,25 +123,24 @@ public class AccountRest {
     public Mono<ResponseEntity<ResponseBody<Void>>> deleteOneById(
             @PathVariable("id") UUID id
     ) {
-        return accountUseCase
+        return basicAccountUseCase
                 .deleteOneById(id)
-                .then(Mono
-                        .fromCallable(() -> ResponseBody
-                                .<Void>builder()
-                                .message("Account deleted.")
-                                .build()
-                                .toEntity(HttpStatus.OK))
+                .thenReturn(ResponseBody
+                        .<Void>builder()
+                        .message("Account deleted.")
+                        .build()
+                        .toEntity(HttpStatus.OK)
                 )
                 .onErrorResume(e -> Mono
-                        .fromCallable(() -> switch (e.getClass().getSimpleName()) {
-                            default -> ResponseBody
-                                    .<Void>builder()
-                                    .message("Internal server error.")
-                                    .error(e)
-                                    .build()
-                                    .toEntity(HttpStatus.INTERNAL_SERVER_ERROR);
-                        })
+                        .just(ResponseBody
+                                .<Void>builder()
+                                .message("Internal server error.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+                        )
                 );
     }
 
 }
+

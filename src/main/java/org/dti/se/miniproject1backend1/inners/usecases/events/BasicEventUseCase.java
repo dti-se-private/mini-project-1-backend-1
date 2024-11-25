@@ -1,9 +1,9 @@
-package org.dti.se.miniproject1backend1.inners.usecases;
+package org.dti.se.miniproject1backend1.inners.usecases.events;
 
 import org.dti.se.miniproject1backend1.inners.models.entities.Event;
 import org.dti.se.miniproject1backend1.inners.models.entities.EventVoucher;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.EventResponse;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.VoucherResponse;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveEventResponse;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.vouchers.RetrieveVoucherResponse;
 import org.dti.se.miniproject1backend1.outers.repositories.ones.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -15,7 +15,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-public class EventUseCase {
+public class BasicEventUseCase {
 
     @Autowired
     EventRepository eventRepository;
@@ -32,14 +32,14 @@ public class EventUseCase {
     @Autowired
     TransactionRepository transactionRepository;
 
-    public Flux<EventResponse> getTop3Events() {
+    public Flux<RetrieveEventResponse> getTop3Events() {
         return transactionRepository.findTop3EventByTransactions()
                 .flatMap(transactionCount ->
                         eventRepository.findById(transactionCount.getEventId())
                                 .flatMap(event ->
                                         eventTicketRepository.findByEventId(event.getId())
                                                 .map(ticket ->
-                                                        EventResponse.builder()
+                                                        RetrieveEventResponse.builder()
                                                                 .id(event.getId())
                                                                 .accountId(event.getAccountId())
                                                                 .name(event.getName())
@@ -54,7 +54,7 @@ public class EventUseCase {
                 );
     }
 
-    public Flux<EventResponse> getAllEvents(String category) {
+    public Flux<RetrieveEventResponse> getAllEvents(String category) {
         Flux<Event> eventFlux;
 
         if ("all".equalsIgnoreCase(category) || category == null || category.isEmpty()) {
@@ -77,8 +77,8 @@ public class EventUseCase {
                                                                         voucherRepository.findAllById(voucherIds)
                                                                                 .collectList()
                                                                                 .map(vouchers -> {
-                                                                                    List<VoucherResponse> voucherDTOs = vouchers.stream()
-                                                                                            .map(voucher -> VoucherResponse.builder()
+                                                                                    List<RetrieveVoucherResponse> voucherDTOs = vouchers.stream()
+                                                                                            .map(voucher -> RetrieveVoucherResponse.builder()
                                                                                                     .id(voucher.getId())
                                                                                                     .name(voucher.getName())
                                                                                                     .description(voucher.getDescription())
@@ -88,7 +88,7 @@ public class EventUseCase {
                                                                                                     .build())
                                                                                             .collect(Collectors.toList());
 
-                                                                                    return EventResponse.builder()
+                                                                                    return RetrieveEventResponse.builder()
                                                                                             .id(event.getId())
                                                                                             .accountId(event.getAccountId())
                                                                                             .name(event.getName())
@@ -107,7 +107,7 @@ public class EventUseCase {
                 );
     }
 
-    public Mono<EventResponse> getEventById(UUID eventID) {
+    public Mono<RetrieveEventResponse> getEventById(UUID eventID) {
         return eventRepository.findById(eventID)
                 .flatMap(event ->
                         eventTicketRepository.findByEventId(event.getId())
@@ -122,8 +122,8 @@ public class EventUseCase {
                                                                         voucherRepository.findAllById(voucherIds)
                                                                                 .collectList()
                                                                                 .map(vouchers -> {
-                                                                                    List<VoucherResponse> voucherDTOs = vouchers.stream()
-                                                                                            .map(voucher -> VoucherResponse.builder()
+                                                                                    List<RetrieveVoucherResponse> voucherDTOs = vouchers.stream()
+                                                                                            .map(voucher -> RetrieveVoucherResponse.builder()
                                                                                                     .id(voucher.getId())
                                                                                                     .name(voucher.getName())
                                                                                                     .description(voucher.getDescription())
@@ -133,7 +133,7 @@ public class EventUseCase {
                                                                                                     .build())
                                                                                             .collect(Collectors.toList());
 
-                                                                                    return EventResponse.builder()
+                                                                                    return RetrieveEventResponse.builder()
                                                                                             .id(event.getId())
                                                                                             .accountId(event.getAccountId())
                                                                                             .name(event.getName())

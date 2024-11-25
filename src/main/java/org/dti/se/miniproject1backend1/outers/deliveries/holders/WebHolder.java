@@ -1,4 +1,4 @@
-package org.dti.se.miniproject1backend1.outers.holders;
+package org.dti.se.miniproject1backend1.outers.deliveries.holders;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.ReactiveTransaction;

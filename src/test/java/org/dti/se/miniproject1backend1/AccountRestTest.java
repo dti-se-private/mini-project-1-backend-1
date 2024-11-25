@@ -120,8 +120,7 @@ public class AccountRestTest extends TestConfiguration {
                     assert body.getData().getPhone().equals(accountPatcher.getPhone());
                     assert body.getData().getDob().equals(accountPatcher.getDob());
                     assert body.getData().getReferralCode().equals(accountPatcher.getReferralCode());
-                    fakeAccounts.remove(realAccount);
-                    fakeAccounts.add(body.getData());
+                    fakeAccounts.set(fakeAccounts.indexOf(realAccount), body.getData());
                 });
     }
 

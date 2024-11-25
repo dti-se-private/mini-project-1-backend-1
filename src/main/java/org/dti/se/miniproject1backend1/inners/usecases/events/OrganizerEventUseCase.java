@@ -1,6 +1,6 @@
-package org.dti.se.miniproject1backend1.inners.usecases;
+package org.dti.se.miniproject1backend1.inners.usecases.events;
 
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.CreateEventRequest;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.CreateEventRequest;
 import org.dti.se.miniproject1backend1.outers.repositories.ones.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;

@@ -1,7 +1,7 @@
 package org.dti.se.miniproject1backend1.outers.repositories.ones;
 
 import org.dti.se.miniproject1backend1.inners.models.entities.Transaction;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.TransactionCountRequest;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.transactions.TransactionCountRequest;
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.stereotype.Repository;

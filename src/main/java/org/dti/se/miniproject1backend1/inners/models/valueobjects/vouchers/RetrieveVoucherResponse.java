@@ -1,4 +1,4 @@
-package org.dti.se.miniproject1backend1.inners.models.valueobjects;
+package org.dti.se.miniproject1backend1.inners.models.valueobjects.vouchers;
 
 import lombok.*;
 import lombok.experimental.Accessors;
@@ -14,7 +14,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Accessors(chain = true)
-public class VoucherResponse extends Model {
+public class RetrieveVoucherResponse extends Model {
     private UUID id;
     private String code;
     private String name;

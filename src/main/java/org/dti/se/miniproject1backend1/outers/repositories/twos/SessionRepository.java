@@ -32,7 +32,6 @@ public class SessionRepository {
                 );
     }
 
-
     public Mono<Session> getByAccessToken(String accessToken) {
         return stringTemplate
                 .opsForValue()
@@ -45,7 +44,6 @@ public class SessionRepository {
                     }
                 });
     }
-
 
     public Mono<Boolean> deleteByAccessToken(String accessToken) {
         return stringTemplate

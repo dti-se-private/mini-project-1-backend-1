@@ -1,9 +1,9 @@
 package org.dti.se.miniproject1backend1;
 
 import org.dti.se.miniproject1backend1.inners.models.entities.Account;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.EventResponse;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.ResponseBody;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.Session;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveEventResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -39,16 +39,16 @@ public class EventRestTest extends TestConfiguration {
                 .exchange()
                 .expectStatus()
                 .isOk()
-                .expectBody(new ParameterizedTypeReference<ResponseBody<Flux<EventResponse>>>() {
+                .expectBody(new ParameterizedTypeReference<ResponseBody<Flux<RetrieveEventResponse>>>() {
                 })
                 .value(body -> {
                     assert body != null;
                     assert body.getMessage().equals(expectedMessage);
                     assert body.getData() != null;
 
-                    body.getData().collectList().block().forEach(eventResponse -> {
-                        assert eventResponse.getId() != null;
-                        assert eventResponse.getName() != null;
+                    body.getData().collectList().block().forEach(retrieveEventResponse -> {
+                        assert retrieveEventResponse.getId() != null;
+                        assert retrieveEventResponse.getName() != null;
                     });
                 });
     }
