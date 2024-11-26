@@ -10,10 +10,10 @@ COPY . .
 
 # Build the application.
 RUN --mount=type=cache,target=~/.gradle,sharing=locked \
-    gradle build -x test
+    gradle bootJar
 
 # Copy built artifacts.
-COPY build/libs/*.jar app.jar
+RUN cp build/libs/*.jar app.jar
 
 # Run the application.
 CMD ["java", "-jar", "app.jar"]
