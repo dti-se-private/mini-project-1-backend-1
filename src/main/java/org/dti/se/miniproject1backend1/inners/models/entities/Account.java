@@ -1,5 +1,6 @@
 package org.dti.se.miniproject1backend1.inners.models.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.datatype.jsr310.ser.OffsetDateTimeSerializer;
 import lombok.*;
@@ -34,6 +35,7 @@ public class Account extends Model implements Persistable<UUID> {
 
     @Transient
     @Builder.Default
+    @JsonIgnore
     public Boolean isNew = true;
 
     @Override
