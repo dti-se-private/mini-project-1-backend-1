@@ -12,6 +12,7 @@ import org.dti.se.miniproject1backend1.inners.usecases.authentications.LoginAuth
 import org.dti.se.miniproject1backend1.inners.usecases.authentications.RegisterAuthenticationUseCase;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountCredentialsInvalidException;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountExistsException;
+import org.dti.se.miniproject1backend1.outers.exceptions.referrals.ReferralCodeNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -82,6 +83,14 @@ public class AuthenticationRest {
                                 .message("Account exists.")
                                 .build()
                                 .toEntity(HttpStatus.CONFLICT)
+                        )
+                )
+                .onErrorResume(ReferralCodeNotFoundException.class, e -> Mono
+                        .just(ResponseBody
+                                .<Account>builder()
+                                .message("Referral code not found.")
+                                .build()
+                                .toEntity(HttpStatus.NOT_FOUND)
                         )
                 )
                 .onErrorResume(e -> Mono

@@ -106,7 +106,7 @@ public class TestConfiguration {
                 .password(rawPassword)
                 .phone(String.format("phone-%s", UUID.randomUUID()))
                 .dob(now)
-                .referralCode(String.format("referralCode-%s", UUID.randomUUID()))
+                .referralCode(null)
                 .build();
 
         return webTestClient
@@ -128,7 +128,7 @@ public class TestConfiguration {
                     assert securityConfiguration.matches(requestBody.getPassword(), body.getData().getPassword());
                     assert body.getData().getPhone().equals(requestBody.getPhone());
                     assert body.getData().getDob().equals(requestBody.getDob());
-                    assert body.getData().getReferralCode().equals(requestBody.getReferralCode());
+                    assert body.getData().getReferralCode() != null;
                 })
                 .returnResult()
                 .getResponseBody();

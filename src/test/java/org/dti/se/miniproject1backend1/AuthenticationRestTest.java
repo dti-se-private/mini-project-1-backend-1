@@ -28,7 +28,8 @@ public class AuthenticationRestTest extends TestConfiguration {
     }
 
     @Test
-    public void testRegisterByEmailAndPassword() {
+    public void testRegisterByEmailAndPasswordWithReferralCode() {
+        Account referralOwnerAccount = fakeAccounts.getFirst();
         OffsetDateTime now = OffsetDateTime.now().truncatedTo(ChronoUnit.MICROS);
         RegisterByEmailAndPasswordRequest requestBody = RegisterByEmailAndPasswordRequest
                 .builder()
@@ -37,7 +38,7 @@ public class AuthenticationRestTest extends TestConfiguration {
                 .password(rawPassword)
                 .phone(String.format("phone-%s", UUID.randomUUID()))
                 .dob(now)
-                .referralCode(String.format("referralCode-%s", UUID.randomUUID()))
+                .referralCode(referralOwnerAccount.getReferralCode())
                 .build();
 
         webTestClient
@@ -59,9 +60,32 @@ public class AuthenticationRestTest extends TestConfiguration {
                     assert securityConfiguration.matches(requestBody.getPassword(), body.getData().getPassword());
                     assert body.getData().getPhone().equals(requestBody.getPhone());
                     assert body.getData().getDob().equals(requestBody.getDob());
-                    assert body.getData().getReferralCode().equals(requestBody.getReferralCode());
+                    assert body.getData().getReferralCode() != null;
                     fakeAccounts.add(body.getData());
                 });
+    }
+
+
+    @Test
+    public void testRegisterByEmailAndPasswordWithNotFoundReferralCode() {
+        OffsetDateTime now = OffsetDateTime.now().truncatedTo(ChronoUnit.MICROS);
+        RegisterByEmailAndPasswordRequest requestBody = RegisterByEmailAndPasswordRequest
+                .builder()
+                .name(String.format("name-%s", UUID.randomUUID()))
+                .email(String.format("email-%s", UUID.randomUUID()))
+                .password(rawPassword)
+                .phone(String.format("phone-%s", UUID.randomUUID()))
+                .dob(now)
+                .referralCode(String.format("referralCode-%s", UUID.randomUUID()))
+                .build();
+
+        webTestClient
+                .post()
+                .uri("/authentications/registers/email-password")
+                .bodyValue(requestBody)
+                .exchange()
+                .expectStatus()
+                .isNotFound();
     }
 
     @Test

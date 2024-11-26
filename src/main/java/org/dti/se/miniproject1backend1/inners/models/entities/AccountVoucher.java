@@ -9,7 +9,6 @@ import org.springframework.data.annotation.Transient;
 import org.springframework.data.domain.Persistable;
 import org.springframework.data.relational.core.mapping.Table;
 
-import java.math.BigDecimal;
 import java.util.UUID;
 
 @Data
@@ -18,15 +17,13 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Accessors(chain = true)
-@Table(name = "event_ticket")
-public class EventTicket extends Model implements Persistable<UUID> {
+@Table(name = "account_voucher")
+public class AccountVoucher extends Model implements Persistable<UUID> {
     @Id
     private UUID id;
-    private UUID eventId;
-    private String name;
-    private String description;
-    private BigDecimal price;
-    private Integer slots;
+    private UUID accountId;
+    private UUID voucherId;
+    private Integer quantity;
 
     @Transient
     @Builder.Default
