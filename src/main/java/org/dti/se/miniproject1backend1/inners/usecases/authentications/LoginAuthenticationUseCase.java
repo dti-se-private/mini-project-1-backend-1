@@ -1,6 +1,7 @@
 package org.dti.se.miniproject1backend1.inners.usecases.authentications;
 
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.Session;
+import org.dti.se.miniproject1backend1.outers.configurations.SecurityConfiguration;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountCredentialsInvalidException;
 import org.dti.se.miniproject1backend1.outers.repositories.ones.AccountRepository;
 import org.dti.se.miniproject1backend1.outers.repositories.twos.SessionRepository;
@@ -22,14 +23,16 @@ public class LoginAuthenticationUseCase {
     @Autowired
     SessionRepository sessionRepository;
 
+    @Autowired
+    SecurityConfiguration securityConfiguration;
 
     public Mono<Session> loginByEmailAndPassword(String email, String password) {
         return accountRepository
-                .findFirstByEmailAndPassword(email, password)
+                .findFirstByEmailAndPassword(email, securityConfiguration.encode(password))
                 .switchIfEmpty(Mono.error(new AccountCredentialsInvalidException()))
                 .map(account -> {
                     OffsetDateTime now = OffsetDateTime.now().truncatedTo(ChronoUnit.MICROS);
-                    OffsetDateTime accessTokenExpiredAt = now.plusMinutes(5);
+                    OffsetDateTime accessTokenExpiredAt = now.plusMinutes(15);
                     OffsetDateTime refreshTokenExpiredAt = now.plusDays(3);
                     return Session
                             .builder()

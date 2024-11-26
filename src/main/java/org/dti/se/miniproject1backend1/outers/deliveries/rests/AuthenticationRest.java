@@ -95,8 +95,8 @@ public class AuthenticationRest {
                 );
     }
 
-    @PostMapping(value = "/logouts/access-token")
-    public Mono<ResponseEntity<ResponseBody<Void>>> logoutByAccessToken(
+    @PostMapping(value = "/logouts/session")
+    public Mono<ResponseEntity<ResponseBody<Void>>> logoutBySession(
             @RequestBody Session session
     ) {
         return basicAuthenticationUseCase
@@ -126,6 +126,47 @@ public class AuthenticationRest {
                 .onErrorResume(e -> Mono
                         .fromCallable(() -> ResponseBody
                                 .<Void>builder()
+                                .message("Internal server error.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+                        )
+                );
+    }
+
+
+    @PostMapping(value = "/refreshes/session")
+    public Mono<ResponseEntity<ResponseBody<Session>>> refreshSession(
+            @RequestBody Session session
+    ) {
+        return basicAuthenticationUseCase
+                .refreshSession(session)
+                .map(newSession -> ResponseBody
+                        .<Session>builder()
+                        .message("Session refreshed.")
+                        .data(newSession)
+                        .build()
+                        .toEntity(HttpStatus.OK)
+                )
+                .onErrorResume(TokenExpiredException.class, e -> Mono
+                        .just(ResponseBody
+                                .<Session>builder()
+                                .message("Session expired.")
+                                .build()
+                                .toEntity(HttpStatus.UNAUTHORIZED)
+                        )
+                )
+                .onErrorResume(JWTVerificationException.class, e -> Mono
+                        .just(ResponseBody
+                                .<Session>builder()
+                                .message("Session verification failed.")
+                                .build()
+                                .toEntity(HttpStatus.UNAUTHORIZED)
+                        )
+                )
+                .onErrorResume(e -> Mono
+                        .fromCallable(() -> ResponseBody
+                                .<Session>builder()
                                 .message("Internal server error.")
                                 .exception(e)
                                 .build()
