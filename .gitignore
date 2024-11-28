@@ -5,7 +5,7 @@
 *.ipr
 
 ### Gradle ###
-.gradle/
-build/
-gradle/
-target/
+.gradle
+gradle
+target
+build

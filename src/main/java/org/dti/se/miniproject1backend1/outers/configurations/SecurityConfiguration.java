@@ -15,6 +15,7 @@ import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
+import org.springframework.web.cors.CorsConfiguration;
 
 import java.util.Objects;
 
@@ -38,7 +39,13 @@ public class SecurityConfiguration implements PasswordEncoder {
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity serverHttpSecurity) {
         return serverHttpSecurity.
-                cors(ServerHttpSecurity.CorsSpec::disable)
+                cors(cors -> cors.configurationSource(serverWebExchange -> {
+                    var corsConfiguration = new CorsConfiguration();
+                    corsConfiguration.addAllowedOriginPattern("*");
+                    corsConfiguration.addAllowedMethod("*");
+                    corsConfiguration.addAllowedHeader("*");
+                    return corsConfiguration;
+                }))
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)

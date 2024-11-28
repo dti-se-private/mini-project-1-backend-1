@@ -14,4 +14,7 @@ public interface AccountRepository extends R2dbcRepository<Account, UUID> {
     Mono<Account> findFirstByEmail(String email);
 
     Mono<Account> findFirstByEmailAndPassword(String email, String password);
+
+    Mono<Account> findAccountByReferralCode(String referralCode);
+
 }

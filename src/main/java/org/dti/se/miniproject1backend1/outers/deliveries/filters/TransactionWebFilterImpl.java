@@ -1,5 +1,6 @@
 package org.dti.se.miniproject1backend1.outers.deliveries.filters;
 
+import io.r2dbc.postgresql.api.PostgresqlException;
 import org.dti.se.miniproject1backend1.outers.deliveries.holders.WebHolder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -27,7 +28,10 @@ public class TransactionWebFilterImpl implements WebFilter {
                         .filter(exchange)
                         .contextWrite(context -> context.put(WebHolder.TRANSACTION_CONTEXT_KEY, action))
                 )
-                .retryWhen(Retry.backoff(10, Duration.ofMillis(100)))
+                .retryWhen(Retry
+                        .backoff(10, Duration.ofMillis(100))
+                        .filter(throwable -> throwable instanceof PostgresqlException)
+                )
                 .then();
     }
 }
