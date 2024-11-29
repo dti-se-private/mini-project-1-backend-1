@@ -1,11 +1,12 @@
 package org.dti.se.miniproject1backend1.inners.usecases.events;
 
-import org.dti.se.miniproject1backend1.inners.models.entities.Event;
 import org.dti.se.miniproject1backend1.inners.models.entities.EventVoucher;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveEventResponse;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.vouchers.RetrieveVoucherResponse;
 import org.dti.se.miniproject1backend1.outers.repositories.ones.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -53,18 +54,13 @@ public class BasicEventUseCase {
 
     public Flux<RetrieveEventResponse> getAllEvents(String category, String page, String size) {
         return Mono.fromCallable(() -> {
-            Flux<Event> eventFlux;
-
-            if ("all".equalsIgnoreCase(category) || category == null || category.isEmpty()) {
-                eventFlux = eventRepository.findAll();
-            } else {
-                eventFlux = eventRepository.findByCategoryIgnoreCase(category);
-            }
-
             int pageNumber = (page != null && !page.isEmpty()) ? Integer.parseInt(page) : 0;
             int pageSize = (size != null && !size.isEmpty()) ? Integer.parseInt(size) : 10;
+            Pageable pageable = PageRequest.of(pageNumber, pageSize);
 
-            return eventFlux.skip((long) pageNumber * pageSize).take(pageSize);
+            return ("all".equalsIgnoreCase(category) || category == null || category.isEmpty())
+                    ? eventRepository.findAllBy(pageable)
+                    : eventRepository.findByCategoryIgnoreCase(category, pageable);
         }).flatMapMany(eventFlux -> eventFlux.flatMap(event -> eventTicketRepository
                 .findByEventId(event.getId())
                 .map(ticket -> RetrieveEventResponse.builder()
