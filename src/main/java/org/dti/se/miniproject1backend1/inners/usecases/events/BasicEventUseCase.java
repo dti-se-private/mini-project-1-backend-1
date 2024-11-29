@@ -52,34 +52,33 @@ public class BasicEventUseCase {
     }
 
     public Flux<RetrieveEventResponse> getAllEvents(String category, String page, String size) {
-        Flux<Event> eventFlux;
+        return Mono.fromCallable(() -> {
+            Flux<Event> eventFlux;
 
-        if ("all".equalsIgnoreCase(category) || category == null || category.isEmpty()) {
-            eventFlux = eventRepository.findAll();
-        } else {
-            eventFlux = eventRepository.findByCategoryIgnoreCase(category);
-        }
+            if ("all".equalsIgnoreCase(category) || category == null || category.isEmpty()) {
+                eventFlux = eventRepository.findAll();
+            } else {
+                eventFlux = eventRepository.findByCategoryIgnoreCase(category);
+            }
 
-        int pageNumber = (page != null && !page.isEmpty()) ? Integer.parseInt(page) : 0;
-        int pageSize = (size != null && !size.isEmpty()) ? Integer.parseInt(size) : 10;
+            int pageNumber = (page != null && !page.isEmpty()) ? Integer.parseInt(page) : 0;
+            int pageSize = (size != null && !size.isEmpty()) ? Integer.parseInt(size) : 10;
 
-        return eventFlux
-                .skip((long) pageNumber * pageSize)
-                .take(pageSize)
-                .flatMap(event -> eventTicketRepository
-                        .findByEventId(event.getId())
-                        .map(ticket -> RetrieveEventResponse.builder()
-                              .id(event.getId())
-                              .accountId(event.getAccountId())
-                              .name(event.getName())
-                              .location(event.getLocation())
-                              .category(event.getCategory())
-                              .time(event.getTime())
-                              .price(ticket.getPrice())
-                              .slots(ticket.getSlots())
-                              .build()
-                        )
-                );
+            return eventFlux.skip((long) pageNumber * pageSize).take(pageSize);
+        }).flatMapMany(eventFlux -> eventFlux.flatMap(event -> eventTicketRepository
+                .findByEventId(event.getId())
+                .map(ticket -> RetrieveEventResponse.builder()
+                        .id(event.getId())
+                        .accountId(event.getAccountId())
+                        .name(event.getName())
+                        .location(event.getLocation())
+                        .category(event.getCategory())
+                        .time(event.getTime())
+                        .price(ticket.getPrice())
+                        .slots(ticket.getSlots())
+                        .build()
+                )
+        ));
     }
 
     public Mono<RetrieveEventResponse> getEventById(UUID eventID) {
