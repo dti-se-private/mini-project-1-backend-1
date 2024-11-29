@@ -61,6 +61,7 @@ public class AuthenticationRestTest extends TestConfiguration {
                     assert body.getData().getPhone().equals(requestBody.getPhone());
                     assert body.getData().getDob().equals(requestBody.getDob());
                     assert body.getData().getReferralCode() != null;
+                    assert body.getData().getProfileImageUrl() == null;
                     fakeAccounts.add(body.getData());
                 });
     }

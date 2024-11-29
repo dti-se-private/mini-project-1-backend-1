@@ -32,6 +32,7 @@ public class Account extends Model implements Persistable<UUID> {
     @JsonSerialize(using = OffsetDateTimeSerializer.class)
     private OffsetDateTime dob;
     private String referralCode;
+    private String profileImageUrl;
 
     @Transient
     @Builder.Default

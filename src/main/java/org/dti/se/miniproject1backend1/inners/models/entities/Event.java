@@ -31,6 +31,7 @@ public class Event extends Model implements Persistable<UUID> {
     private String category;
     @JsonSerialize(using = OffsetDateTimeSerializer.class)
     private OffsetDateTime time;
+    private String bannerImageUrl;
 
     @Transient
     @Builder.Default

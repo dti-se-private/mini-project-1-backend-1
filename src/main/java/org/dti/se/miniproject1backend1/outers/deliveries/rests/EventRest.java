@@ -43,8 +43,9 @@ public class EventRest {
     }
 
     @GetMapping
-    public Mono<ResponseEntity<ResponseBody<List<RetrieveEventResponse>>>> getAllByCategory(@RequestParam(required = false) String category) {
-        return basicEventUseCase.getAllEvents(category)
+    public Mono<ResponseEntity<ResponseBody<List<RetrieveEventResponse>>>> getAllByCategory(@RequestParam(required = false) String category
+            , @RequestParam(required = false) String page, @RequestParam(required = false) String size) {
+        return basicEventUseCase.getAllEvents(category, page, size)
                 .collectList()
                 .map(eventList -> ResponseBody.<List<RetrieveEventResponse>>builder()
                         .message("Events by category fetched.")
@@ -69,7 +70,7 @@ public class EventRest {
     public Mono<ResponseEntity<ResponseBody<RetrieveEventResponse>>> getEventDetail(@PathVariable UUID id) {
         return basicEventUseCase.getEventById(id)
                 .map(event -> ResponseBody.<RetrieveEventResponse>builder()
-                        .message("Events by category fetched.")
+                        .message("Event detail fetched.")
                         .data(event)
                         .build()
                         .toEntity(HttpStatus.OK)

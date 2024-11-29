@@ -6,12 +6,11 @@ import org.dti.se.miniproject1backend1.inners.models.valueobjects.Session;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveEventResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.ParameterizedTypeReference;
-import reactor.core.publisher.Flux;
 
-@Disabled
+import java.util.List;
+
 public class EventRestTest extends TestConfiguration {
     Account authenticatedAccount;
     Session authenticatedSession;
@@ -39,16 +38,40 @@ public class EventRestTest extends TestConfiguration {
                 .exchange()
                 .expectStatus()
                 .isOk()
-                .expectBody(new ParameterizedTypeReference<ResponseBody<Flux<RetrieveEventResponse>>>() {
+                .expectBody(new ParameterizedTypeReference<ResponseBody<List<RetrieveEventResponse>>>() {
                 })
                 .value(body -> {
                     assert body != null;
                     assert body.getMessage().equals(expectedMessage);
                     assert body.getData() != null;
 
-                    body.getData().collectList().block().forEach(retrieveEventResponse -> {
-                        assert retrieveEventResponse.getId() != null;
-                        assert retrieveEventResponse.getName() != null;
+                    body.getData().forEach(eventResponse -> {
+                        assert eventResponse.getId() != null;
+                        assert eventResponse.getName() != null;
+                    });
+                });
+    }
+
+    @Test
+    public void testGetAllEvents() {
+        String expectedMessage = "Events by category fetched.";
+
+        webTestClient
+                .get()
+                .uri("/events")
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody(new ParameterizedTypeReference<ResponseBody<List<RetrieveEventResponse>>>() {
+                })
+                .value(body -> {
+                    assert body != null;
+                    assert body.getMessage().equals(expectedMessage);
+                    assert body.getData() != null;
+
+                    body.getData().forEach(eventResponse -> {
+                        assert eventResponse.getId() != null;
+                        assert eventResponse.getName() != null;
                     });
                 });
     }
