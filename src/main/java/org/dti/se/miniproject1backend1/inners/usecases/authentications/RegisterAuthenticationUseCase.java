@@ -36,6 +36,7 @@ public class RegisterAuthenticationUseCase {
                         .phone(request.getPhone())
                         .dob(request.getDob())
                         .referralCode(UUID.randomUUID().toString())
+                        .profileImageUrl(null)
                         .build())
                 .flatMap(accountRepository::save)
                 .flatMap(registeredAccount -> {

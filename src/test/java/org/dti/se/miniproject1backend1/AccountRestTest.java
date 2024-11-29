@@ -39,6 +39,7 @@ public class AccountRestTest extends TestConfiguration {
                 .phone(String.format("phone-%s", UUID.randomUUID()))
                 .dob(now)
                 .referralCode(String.format("referralCode-%s", UUID.randomUUID()))
+                .profileImageUrl(String.format("profileImageUrl-%s", UUID.randomUUID()))
                 .build();
 
         webTestClient
@@ -61,6 +62,7 @@ public class AccountRestTest extends TestConfiguration {
                     assert body.getData().getPhone().equals(accountCreator.getPhone());
                     assert body.getData().getDob().equals(accountCreator.getDob());
                     assert body.getData().getReferralCode().equals(accountCreator.getReferralCode());
+                    assert body.getData().getProfileImageUrl().equals(accountCreator.getProfileImageUrl());
                     fakeAccounts.add(body.getData());
                 });
     }
@@ -98,6 +100,7 @@ public class AccountRestTest extends TestConfiguration {
                 .phone(String.format("phone-%s", UUID.randomUUID()))
                 .dob(now)
                 .referralCode(String.format("referralCode-%s", UUID.randomUUID()))
+                .profileImageUrl(String.format("profileImageUrl-%s", UUID.randomUUID()))
                 .build();
 
         webTestClient
@@ -120,6 +123,7 @@ public class AccountRestTest extends TestConfiguration {
                     assert body.getData().getPhone().equals(accountPatcher.getPhone());
                     assert body.getData().getDob().equals(accountPatcher.getDob());
                     assert body.getData().getReferralCode().equals(accountPatcher.getReferralCode());
+                    assert body.getData().getProfileImageUrl().equals(accountPatcher.getProfileImageUrl());
                     fakeAccounts.set(fakeAccounts.indexOf(realAccount), body.getData());
                 });
     }

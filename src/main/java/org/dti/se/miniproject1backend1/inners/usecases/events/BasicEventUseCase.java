@@ -36,20 +36,20 @@ public class BasicEventUseCase {
     public Flux<RetrieveEventResponse> getTop3Events() {
         return transactionRepository.findTop3EventByTransactions()
                 .flatMap(transactionCount -> eventRepository
-                         .findById(transactionCount.getEventId())
-                .flatMap(event -> eventTicketRepository.findByEventId(event.getId())
-                         .map(ticket -> RetrieveEventResponse.builder()
-                                .id(event.getId())
-                                .accountId(event.getAccountId())
-                                .name(event.getName())
-                                .location(event.getLocation())
-                                .category(event.getCategory())
-                                .time(event.getTime())
-                                .price(ticket.getPrice())
-                                .slots(ticket.getSlots())
-                                .build()
-                         )
-                ));
+                        .findById(transactionCount.getEventId())
+                        .flatMap(event -> eventTicketRepository.findByEventId(event.getId())
+                                .map(ticket -> RetrieveEventResponse.builder()
+                                        .id(event.getId())
+                                        .accountId(event.getAccountId())
+                                        .name(event.getName())
+                                        .location(event.getLocation())
+                                        .category(event.getCategory())
+                                        .time(event.getTime())
+                                        .price(ticket.getPrice())
+                                        .slots(ticket.getSlots())
+                                        .build()
+                                )
+                        ));
     }
 
     public Flux<RetrieveEventResponse> getAllEvents(String category, String page, String size) {
@@ -82,42 +82,42 @@ public class BasicEventUseCase {
                 .findById(eventID)
                 .flatMap(event -> eventTicketRepository
                         .findByEventId(event.getId())
-                .flatMap(ticket -> eventVoucherRepository
-                         .findByEventId(event.getId())
-                         .collectList()
-                .flatMap(eventVouchers -> Flux
-                         .fromIterable(eventVouchers)
-                         .map(EventVoucher::getVoucherId)
-                         .collectList()
-                .flatMap(voucherIds -> voucherRepository
-                         .findAllById(voucherIds)
-                         .collectList()
-                         .map(vouchers -> {
-                             List<RetrieveVoucherResponse> voucherDTOs = vouchers
-                                     .stream()
-                                     .map(voucher -> RetrieveVoucherResponse.builder()
-                                             .id(voucher.getId())
-                                             .name(voucher.getName())
-                                             .description(voucher.getDescription())
-                                             .variableAmount(voucher.getVariableAmount())
-                                             .startedAt(voucher.getStartedAt())
-                                             .endedAt(voucher.getEndedAt())
-                                             .build())
-                                     .collect(Collectors.toList());
+                        .flatMap(ticket -> eventVoucherRepository
+                                .findByEventId(event.getId())
+                                .collectList()
+                                .flatMap(eventVouchers -> Flux
+                                        .fromIterable(eventVouchers)
+                                        .map(EventVoucher::getVoucherId)
+                                        .collectList()
+                                        .flatMap(voucherIds -> voucherRepository
+                                                .findAllById(voucherIds)
+                                                .collectList()
+                                                .map(vouchers -> {
+                                                    List<RetrieveVoucherResponse> voucherDTOs = vouchers
+                                                            .stream()
+                                                            .map(voucher -> RetrieveVoucherResponse.builder()
+                                                                    .id(voucher.getId())
+                                                                    .name(voucher.getName())
+                                                                    .description(voucher.getDescription())
+                                                                    .variableAmount(voucher.getVariableAmount())
+                                                                    .startedAt(voucher.getStartedAt())
+                                                                    .endedAt(voucher.getEndedAt())
+                                                                    .build())
+                                                            .collect(Collectors.toList());
 
-                             return RetrieveEventResponse.builder()
-                                     .id(event.getId())
-                                     .accountId(event.getAccountId())
-                                     .name(event.getName())
-                                     .description(event.getDescription())
-                                     .location(event.getLocation())
-                                     .category(event.getCategory())
-                                     .time(event.getTime())
-                                     .price(ticket.getPrice())
-                                     .slots(ticket.getSlots())
-                                     .vouchers(voucherDTOs)
-                                     .build();
-                         })
-                ))));
+                                                    return RetrieveEventResponse.builder()
+                                                            .id(event.getId())
+                                                            .accountId(event.getAccountId())
+                                                            .name(event.getName())
+                                                            .description(event.getDescription())
+                                                            .location(event.getLocation())
+                                                            .category(event.getCategory())
+                                                            .time(event.getTime())
+                                                            .price(ticket.getPrice())
+                                                            .slots(ticket.getSlots())
+                                                            .vouchers(voucherDTOs)
+                                                            .build();
+                                                })
+                                        ))));
     }
 }
