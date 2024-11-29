@@ -38,19 +38,19 @@ public class EventRestTest extends TestConfiguration {
                 .exchange()
                 .expectStatus()
                 .isOk()
-        .expectBody(new ParameterizedTypeReference<ResponseBody<List<RetrieveEventResponse>>>() {
-                    })
-                            .value(body -> {
-                        assert body != null;
-                        assert body.getMessage().equals(expectedMessage);
-                        assert body.getData() != null;
+                .expectBody(new ParameterizedTypeReference<ResponseBody<List<RetrieveEventResponse>>>() {
+                })
+                .value(body -> {
+                    assert body != null;
+                    assert body.getMessage().equals(expectedMessage);
+                    assert body.getData() != null;
 
-                            body.getData().stream().forEach(eventResponse -> {
-                                assert eventResponse.getId() != null;
-                                assert eventResponse.getName() != null;
-                            });
-                        });
-                    }
+                    body.getData().forEach(eventResponse -> {
+                        assert eventResponse.getId() != null;
+                        assert eventResponse.getName() != null;
+                    });
+                });
+    }
 
     @Test
     public void testGetAllEvents() {
@@ -69,7 +69,7 @@ public class EventRestTest extends TestConfiguration {
                     assert body.getMessage().equals(expectedMessage);
                     assert body.getData() != null;
 
-                    body.getData().stream().forEach(eventResponse -> {
+                    body.getData().forEach(eventResponse -> {
                         assert eventResponse.getId() != null;
                         assert eventResponse.getName() != null;
                     });

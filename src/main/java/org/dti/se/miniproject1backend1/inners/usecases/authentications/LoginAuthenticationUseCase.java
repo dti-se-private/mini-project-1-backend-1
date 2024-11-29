@@ -32,7 +32,7 @@ public class LoginAuthenticationUseCase {
                 .switchIfEmpty(Mono.error(new AccountCredentialsInvalidException()))
                 .map(account -> {
                     OffsetDateTime now = OffsetDateTime.now().truncatedTo(ChronoUnit.MICROS);
-                    OffsetDateTime accessTokenExpiredAt = now.plusSeconds(3);
+                    OffsetDateTime accessTokenExpiredAt = now.plusSeconds(30);
                     OffsetDateTime refreshTokenExpiredAt = now.plusDays(3);
                     return Session
                             .builder()
