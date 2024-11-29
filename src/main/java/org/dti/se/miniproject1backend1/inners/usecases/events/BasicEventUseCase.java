@@ -33,6 +33,9 @@ public class BasicEventUseCase {
     @Autowired
     TransactionRepository transactionRepository;
 
+    @Autowired
+    AccountRepository accountRepository;
+
     public Flux<RetrieveEventResponse> getTop3Events() {
         return transactionRepository.findTop3EventByTransactions()
                 .flatMap(transactionCount -> eventRepository
@@ -80,7 +83,9 @@ public class BasicEventUseCase {
     public Mono<RetrieveEventResponse> getEventById(UUID eventID) {
         return eventRepository
                 .findById(eventID)
-                .flatMap(event -> eventTicketRepository
+                .flatMap(event -> accountRepository
+                        .findById(event.getAccountId())
+                .flatMap(account -> eventTicketRepository
                         .findByEventId(event.getId())
                 .flatMap(ticket -> eventVoucherRepository
                          .findByEventId(event.getId())
@@ -105,19 +110,20 @@ public class BasicEventUseCase {
                                              .build())
                                      .collect(Collectors.toList());
 
-                             return RetrieveEventResponse.builder()
-                                     .id(event.getId())
-                                     .accountId(event.getAccountId())
-                                     .name(event.getName())
-                                     .description(event.getDescription())
-                                     .location(event.getLocation())
-                                     .category(event.getCategory())
-                                     .time(event.getTime())
-                                     .price(ticket.getPrice())
-                                     .slots(ticket.getSlots())
-                                     .vouchers(voucherDTOs)
-                                     .build();
+                         return RetrieveEventResponse.builder()
+                                 .id(event.getId())
+                                 .accountId(event.getAccountId())
+                                 .accountName(account.getName())
+                                 .name(event.getName())
+                                 .description(event.getDescription())
+                                 .location(event.getLocation())
+                                 .category(event.getCategory())
+                                 .time(event.getTime())
+                                 .price(ticket.getPrice())
+                                 .slots(ticket.getSlots())
+                                 .vouchers(voucherDTOs)
+                                 .build();
                          })
-                ))));
+                )))));
     }
 }

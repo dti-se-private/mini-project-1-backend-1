@@ -19,6 +19,7 @@ import java.util.UUID;
 public class RetrieveEventResponse extends Model {
     private UUID id;
     private UUID accountId;
+    private String accountName;
     private String name;
     private String description;
     private String location;
