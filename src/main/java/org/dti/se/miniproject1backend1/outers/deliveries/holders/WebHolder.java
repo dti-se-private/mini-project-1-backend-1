@@ -9,9 +9,10 @@ public class WebHolder {
 
     public final static String TRANSACTION_CONTEXT_KEY = "transaction";
 
-    public Mono<ReactiveTransaction> getTransaction() {
+    public static Mono<ReactiveTransaction> getTransaction() {
         return Mono
                 .deferContextual(contextView -> contextView.get(TRANSACTION_CONTEXT_KEY))
                 .cast(ReactiveTransaction.class);
     }
+
 }

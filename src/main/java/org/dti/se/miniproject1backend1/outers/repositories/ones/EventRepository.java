@@ -10,7 +10,6 @@ import java.util.UUID;
 
 @Repository
 public interface EventRepository extends R2dbcRepository<Event, UUID> {
-    Flux<Event> findAllBy(Pageable pageable);
 
     Flux<Event> findByCategoryIgnoreCase(String category, Pageable pageable);
 }

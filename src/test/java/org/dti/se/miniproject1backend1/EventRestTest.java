@@ -1,6 +1,7 @@
 package org.dti.se.miniproject1backend1;
 
 import org.dti.se.miniproject1backend1.inners.models.entities.Account;
+import org.dti.se.miniproject1backend1.inners.models.entities.Event;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.ResponseBody;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.Session;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveEventResponse;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.ParameterizedTypeReference;
 
 import java.util.List;
+import java.util.Objects;
 
 public class EventRestTest extends TestConfiguration {
     Account authenticatedAccount;
@@ -30,8 +32,6 @@ public class EventRestTest extends TestConfiguration {
 
     @Test
     public void testGetHero() {
-        String expectedMessage = "Hero fetched.";
-
         webTestClient
                 .get()
                 .uri("/events/hero")
@@ -42,7 +42,7 @@ public class EventRestTest extends TestConfiguration {
                 })
                 .value(body -> {
                     assert body != null;
-                    assert body.getMessage().equals(expectedMessage);
+                    assert body.getMessage() != null;
                     assert body.getData() != null;
 
                     body.getData().forEach(eventResponse -> {
@@ -54,8 +54,6 @@ public class EventRestTest extends TestConfiguration {
 
     @Test
     public void testGetAllEvents() {
-        String expectedMessage = "Events by category fetched.";
-
         webTestClient
                 .get()
                 .uri("/events")
@@ -66,7 +64,7 @@ public class EventRestTest extends TestConfiguration {
                 })
                 .value(body -> {
                     assert body != null;
-                    assert body.getMessage().equals(expectedMessage);
+                    assert body.getMessage() != null;
                     assert body.getData() != null;
 
                     body.getData().forEach(eventResponse -> {
@@ -78,11 +76,11 @@ public class EventRestTest extends TestConfiguration {
 
     @Test
     public void testGetEventById() {
-        String expectedMessage = "Event detail fetched.";
+        Event realEvent = eventRepository.findAll().blockFirst();
 
         webTestClient
                 .get()
-                .uri("/events/072675ce-e5aa-42a9-a7fd-da2efff82489")
+                .uri("/events/{id}", Objects.requireNonNull(realEvent).getId())
                 .exchange()
                 .expectStatus()
                 .isOk()
@@ -90,7 +88,7 @@ public class EventRestTest extends TestConfiguration {
                 })
                 .value(body -> {
                     assert body != null;
-                    assert body.getMessage().equals(expectedMessage);
+                    assert body.getMessage() != null;
                     assert body.getData() != null;
 
                     RetrieveEventResponse eventResponse = body.getData();

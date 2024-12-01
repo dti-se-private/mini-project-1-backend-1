@@ -7,6 +7,7 @@ import org.dti.se.miniproject1backend1.inners.models.valueobjects.authentication
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.authentications.RegisterByEmailAndPasswordRequest;
 import org.dti.se.miniproject1backend1.outers.configurations.SecurityConfiguration;
 import org.dti.se.miniproject1backend1.outers.repositories.ones.AccountRepository;
+import org.dti.se.miniproject1backend1.outers.repositories.ones.EventRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebFlux;
@@ -34,6 +35,8 @@ public class TestConfiguration {
 
     @Autowired
     protected AccountRepository accountRepository;
+    @Autowired
+    protected EventRepository eventRepository;
 
     @Autowired
     protected SecurityConfiguration securityConfiguration;
