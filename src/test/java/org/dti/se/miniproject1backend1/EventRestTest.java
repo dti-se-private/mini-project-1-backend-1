@@ -75,4 +75,27 @@ public class EventRestTest extends TestConfiguration {
                     });
                 });
     }
+
+    @Test
+    public void testGetEventById() {
+        String expectedMessage = "Event detail fetched.";
+
+        webTestClient
+                .get()
+                .uri("/events/072675ce-e5aa-42a9-a7fd-da2efff82489")
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody(new ParameterizedTypeReference<ResponseBody<RetrieveEventResponse>>() {
+                })
+                .value(body -> {
+                    assert body != null;
+                    assert body.getMessage().equals(expectedMessage);
+                    assert body.getData() != null;
+
+                    RetrieveEventResponse eventResponse = body.getData();
+                    assert eventResponse.getId() != null;
+                    assert eventResponse.getName() != null;
+                });
+    }
 }
