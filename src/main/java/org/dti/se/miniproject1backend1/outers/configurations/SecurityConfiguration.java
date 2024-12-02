@@ -11,7 +11,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
-import org.springframework.security.crypto.bcrypt.BCrypt;
+import org.springframework.security.core.token.Sha512DigestUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
@@ -57,22 +57,19 @@ public class SecurityConfiguration implements PasswordEncoder {
                 .authorizeExchange(authorizeExchange -> authorizeExchange
                         .pathMatchers("/authentications/**").permitAll()
                         .pathMatchers("/events/**").permitAll()
-                        .pathMatchers("/webjars/**", "/v3/api-docs/**", "/swagger-ui/**").permitAll()
-                        .anyExchange().authenticated()
-                )
-                .build();
+                        .pathMatchers("/webjars/**", "/v3/api-docs/**").permitAll()
+                                .anyExchange().authenticated()
+                        )
+                        .build();
     }
 
     @Override
     public String encode(CharSequence rawPassword) {
-        return BCrypt.hashpw(
-                rawPassword.toString(),
-                Objects.requireNonNull(environment.getProperty("bcrypt.salt"))
-        );
+        return Sha512DigestUtils.shaHex(rawPassword.toString());
     }
 
     @Override
     public boolean matches(CharSequence rawPassword, String encodedPassword) {
-        return BCrypt.checkpw(rawPassword.toString(), encodedPassword);
+        return Objects.equals(encodedPassword, Sha512DigestUtils.shaHex(rawPassword.toString()));
     }
 }
