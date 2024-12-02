@@ -4,7 +4,6 @@ import lombok.*;
 import lombok.experimental.Accessors;
 import org.dti.se.miniproject1backend1.inners.models.Model;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -14,15 +13,11 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Accessors(chain = true)
-public class RetrieveEventResponse extends Model {
+public class RetrieveEventTicketResponse extends Model {
     private UUID id;
     private String name;
     private String description;
-    private String location;
-    private String category;
-    private OffsetDateTime time;
-    private String bannerImageUrl;
-    private RetrieveOrganizerAccountResponse organizerAccount;
-    private List<RetrieveEventTicketResponse> eventTickets;
-    private List<RetrieveEventVoucherResponse> eventVouchers;
+    private Double price;
+    private Integer slots;
+    private List<String> fields;
 }

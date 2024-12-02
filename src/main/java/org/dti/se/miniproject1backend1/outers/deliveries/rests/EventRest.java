@@ -9,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,67 +23,65 @@ public class EventRest {
         return basicEventUseCase.getTop3Events()
                 .collectList()
                 .map(eventList -> ResponseBody.<List<RetrieveEventResponse>>builder()
-                        .message("Hero fetched.")
+                        .message("Retrieve top 3 events succeed.")
                         .data(eventList)
                         .build()
                         .toEntity(HttpStatus.OK)
                 )
-                .onErrorResume(e -> {
-                    ResponseBody<List<RetrieveEventResponse>> responseBody = ResponseBody
-                            .<List<RetrieveEventResponse>>builder()
-                            .message("Error occurred while fetching hero events.")
-                            .exception(e)
-                            .data(Collections.emptyList())
-                            .build();
-                    return Mono.just(ResponseEntity
-                            .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                            .body(responseBody));
-                });
+                .onErrorResume(e -> Mono
+                        .just(ResponseBody
+                                .<List<RetrieveEventResponse>>builder()
+                                .message("Internal server error.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+                        )
+                );
     }
 
     @GetMapping
-    public Mono<ResponseEntity<ResponseBody<List<RetrieveEventResponse>>>> getAllByCategory(@RequestParam(required = false) String category
-            , @RequestParam(required = false) String page, @RequestParam(required = false) String size) {
-        return basicEventUseCase.getAllEvents(category, page, size)
-                .collectList()
-                .map(eventList -> ResponseBody.<List<RetrieveEventResponse>>builder()
-                        .message("Events by category fetched.")
+    public Mono<ResponseEntity<ResponseBody<List<RetrieveEventResponse>>>> retrieveMany(
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(defaultValue = "") List<String> filters,
+            @RequestParam(defaultValue = "") String search
+    ) {
+        return basicEventUseCase.retrieveMany(page, size, filters, search)
+                .map(eventList -> ResponseBody
+                        .<List<RetrieveEventResponse>>builder()
+                        .message("Retrieve many events succeed.")
                         .data(eventList)
                         .build()
                         .toEntity(HttpStatus.OK)
                 )
-                .onErrorResume(e -> {
-                    ResponseBody<List<RetrieveEventResponse>> responseBody = ResponseBody
-                            .<List<RetrieveEventResponse>>builder()
-                            .message("Error occurred while fetching events by category.")
-                            .exception(e)
-                            .data(Collections.emptyList())
-                            .build();
-                    return Mono.just(ResponseEntity
-                            .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                            .body(responseBody));
-                });
+                .onErrorResume(e -> Mono
+                        .just(ResponseBody
+                                .<List<RetrieveEventResponse>>builder()
+                                .message("Internal server error.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+                        )
+                );
     }
 
     @GetMapping("/{id}")
     public Mono<ResponseEntity<ResponseBody<RetrieveEventResponse>>> getEventDetail(@PathVariable UUID id) {
         return basicEventUseCase.getEventById(id)
                 .map(event -> ResponseBody.<RetrieveEventResponse>builder()
-                        .message("Event detail fetched.")
+                        .message("Retrieve one event by id succeed.")
                         .data(event)
                         .build()
                         .toEntity(HttpStatus.OK)
                 )
-                .onErrorResume(e -> {
-                    ResponseBody<RetrieveEventResponse> responseBody = ResponseBody
-                            .<RetrieveEventResponse>builder()
-                            .message("Error occurred while fetching events by category.")
-                            .exception(e)
-                            .data(null)
-                            .build();
-                    return Mono.just(ResponseEntity
-                            .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                            .body(responseBody));
-                });
+                .onErrorResume(e -> Mono
+                        .just(ResponseBody
+                                .<RetrieveEventResponse>builder()
+                                .message("Internal server error.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+                        )
+                );
     }
 }
