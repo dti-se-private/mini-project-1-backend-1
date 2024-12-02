@@ -31,28 +31,6 @@ public class EventRestTest extends TestConfiguration {
     }
 
     @Test
-    public void testGetHero() {
-        webTestClient
-                .get()
-                .uri("/events/hero")
-                .exchange()
-                .expectStatus()
-                .isOk()
-                .expectBody(new ParameterizedTypeReference<ResponseBody<List<RetrieveEventResponse>>>() {
-                })
-                .value(body -> {
-                    assert body != null;
-                    assert body.getMessage() != null;
-                    assert body.getData() != null;
-
-                    body.getData().forEach(eventResponse -> {
-                        assert eventResponse.getId() != null;
-                        assert eventResponse.getName() != null;
-                    });
-                });
-    }
-
-    @Test
     public void testGetAllEvents() {
         webTestClient
                 .get()

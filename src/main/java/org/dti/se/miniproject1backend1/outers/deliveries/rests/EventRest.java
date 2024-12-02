@@ -18,27 +18,6 @@ public class EventRest {
     @Autowired
     BasicEventUseCase basicEventUseCase;
 
-    @GetMapping("/hero")
-    public Mono<ResponseEntity<ResponseBody<List<RetrieveEventResponse>>>> getHero() {
-        return basicEventUseCase.getTop3Events()
-                .collectList()
-                .map(eventList -> ResponseBody.<List<RetrieveEventResponse>>builder()
-                        .message("Retrieve top 3 events succeed.")
-                        .data(eventList)
-                        .build()
-                        .toEntity(HttpStatus.OK)
-                )
-                .onErrorResume(e -> Mono
-                        .just(ResponseBody
-                                .<List<RetrieveEventResponse>>builder()
-                                .message("Internal server error.")
-                                .exception(e)
-                                .build()
-                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
-                        )
-                );
-    }
-
     @GetMapping
     public Mono<ResponseEntity<ResponseBody<List<RetrieveEventResponse>>>> retrieveMany(
             @RequestParam(defaultValue = "0") Integer page,
