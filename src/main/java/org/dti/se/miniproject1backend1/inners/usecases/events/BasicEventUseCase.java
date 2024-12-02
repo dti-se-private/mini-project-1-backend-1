@@ -54,7 +54,7 @@ public class BasicEventUseCase {
                         ));
     }
 
-    public Mono<List<RetrieveEventResponse>> retrieveMany(Integer page, Integer size, List<String> filters, String search) {
+    public Mono<List<RetrieveEventResponse>> retrieveEvents(Integer page, Integer size, List<String> filters, String search) {
         return Mono
                 .fromCallable(() -> {
                     if (filters.isEmpty()) {
