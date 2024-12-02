@@ -25,7 +25,7 @@ public class EventRest {
             @RequestParam(defaultValue = "") List<String> filters,
             @RequestParam(defaultValue = "") String search
     ) {
-        return basicEventUseCase.retrieveMany(page, size, filters, search)
+        return basicEventUseCase.retrieveEvents(page, size, filters, search)
                 .map(eventList -> ResponseBody
                         .<List<RetrieveEventResponse>>builder()
                         .message("Retrieve many events succeed.")

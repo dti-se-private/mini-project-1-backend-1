@@ -41,7 +41,7 @@ public class BasicEventUseCase {
     @Autowired
     AccountRepository accountRepository;
 
-    public Mono<List<RetrieveEventResponse>> retrieveMany(Integer page, Integer size, List<String> filters, String search) {
+    public Mono<List<RetrieveEventResponse>> retrieveEvents(Integer page, Integer size, List<String> filters, String search) {
         return Mono
                 .fromCallable(() -> {
                     if (filters.isEmpty()) {
@@ -59,7 +59,7 @@ public class BasicEventUseCase {
         return eventRepository
                 .findById(eventID)
                 .flatMap(event -> accountRepository
-                .findById(event.getAccountId())
+                        .findById(event.getAccountId())
                 .flatMap(account -> eventTicketRepository
                         .findByEventId(event.getId())
                 .flatMap(ticket -> eventVoucherRepository
