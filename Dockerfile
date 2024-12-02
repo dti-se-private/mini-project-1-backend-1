@@ -7,6 +7,7 @@ WORKDIR $WORKDIR
 
 # Copy source code.
 COPY . .
+RUN rm .env
 
 # Build the application.
 RUN --mount=type=cache,target=~/.gradle,sharing=locked \
