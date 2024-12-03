@@ -1,5 +1,6 @@
 package org.dti.se.miniproject1backend1.outers.deliveries.filters;
 
+import org.dti.se.miniproject1backend1.outers.configurations.SecurityConfiguration;
 import org.dti.se.miniproject1backend1.outers.repositories.twos.SessionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -16,6 +17,9 @@ public class AuthenticationWebFilterImpl extends AuthenticationWebFilter {
 
     @Autowired
     private SessionRepository sessionRepository;
+
+    @Autowired
+    SecurityConfiguration securityConfiguration;
 
     public AuthenticationWebFilterImpl(ReactiveAuthenticationManager authenticationManager) {
         super(authenticationManager);
