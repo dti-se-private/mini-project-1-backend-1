@@ -17,6 +17,7 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
 import org.springframework.web.cors.CorsConfiguration;
 
+import java.util.List;
 import java.util.Objects;
 
 @Configuration
@@ -35,6 +36,13 @@ public class SecurityConfiguration implements PasswordEncoder {
 
     @Autowired
     Environment environment;
+
+    public List<String> unAuthenticatedPaths = List.of(
+            "/authentications/**",
+            "/events/**",
+            "/webjars/**",
+            "/v3/api-docs/**"
+    );
 
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity serverHttpSecurity) {
@@ -55,12 +63,10 @@ public class SecurityConfiguration implements PasswordEncoder {
                 .addFilterAt(transactionWebFilterImpl, SecurityWebFiltersOrder.FIRST)
                 .addFilterAt(authenticationWebFilterImpl, SecurityWebFiltersOrder.AUTHENTICATION)
                 .authorizeExchange(authorizeExchange -> authorizeExchange
-                        .pathMatchers("/authentications/**").permitAll()
-                        .pathMatchers("/events/**").permitAll()
-                        .pathMatchers("/webjars/**", "/v3/api-docs/**").permitAll()
-                                .anyExchange().authenticated()
-                        )
-                        .build();
+                        .pathMatchers(unAuthenticatedPaths.toArray(String[]::new)).permitAll()
+                        .anyExchange().authenticated()
+                )
+                .build();
     }
 
     @Override

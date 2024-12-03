@@ -119,9 +119,9 @@ public class AuthenticationRest {
                 .onErrorResume(TokenExpiredException.class, e -> Mono
                         .just(ResponseBody
                                 .<Void>builder()
-                                .message("Access token expired.")
+                                .message("Access token already expired.")
                                 .build()
-                                .toEntity(HttpStatus.UNAUTHORIZED)
+                                .toEntity(HttpStatus.OK)
                         )
                 )
                 .onErrorResume(JWTVerificationException.class, e -> Mono
