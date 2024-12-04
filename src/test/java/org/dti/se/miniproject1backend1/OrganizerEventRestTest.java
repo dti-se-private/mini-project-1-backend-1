@@ -1,18 +1,26 @@
 package org.dti.se.miniproject1backend1;
 
-import org.dti.se.miniproject1backend1.inners.models.entities.Event;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.ResponseBody;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.CreateEventRequest;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveEventResponse;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.vouchers.CreateVoucherRequest;
+import org.junit.jupiter.api.*;
 import org.springframework.core.ParameterizedTypeReference;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class OrganizerEventRestTest extends TestConfiguration {
 
-    private Event testEvent;
+    private CreateEventRequest testEvent;
+    private RetrieveEventResponse testEventResponse;
 
     @BeforeEach
     public void setUp() {
@@ -20,59 +28,131 @@ public class OrganizerEventRestTest extends TestConfiguration {
         populate();
         auth();
 
-        /*testEvent = CreateEventRequest.builder()
+        OffsetDateTime now = OffsetDateTime.now().truncatedTo(ChronoUnit.MICROS);
+
+        CreateVoucherRequest testVoucher = CreateVoucherRequest.builder()
+                .name("Test Voucher")
+                .description("Description for Test Voucher")
+                .code(UUID.randomUUID().toString())
+                .variableAmount(7.00)
+                .startedAt(now)
+                .endedAt(now.plusDays(7))
+                .build();
+
+        testEvent = CreateEventRequest.builder()
                 .name("Test Event")
                 .description("Description for Test Event")
-                .(authAccount.getId())
-                .build();*/
+                .category("Test Category")
+                .location("Test Location")
+                .price(100000.00)
+                .slots(100)
+                .vouchers(new CreateVoucherRequest[]{testVoucher})
+                .build();
     }
 
-    /*@Test
-    public void testCreateEvent() {
-        ResponseBody<Event> responseBody = webTestClient
+    @Test
+    public void createNewEvent() {
+        ResponseBody<RetrieveEventResponse> responseBody = webTestClient
                 .post()
-                .uri("/events")
+                .uri("/organizer/events")
                 .bodyValue(testEvent)
                 .exchange()
                 .expectStatus()
                 .isCreated()
-                .expectBody(new ParameterizedTypeReference<ResponseBody<Event>>() {})
+                .expectBody(new ParameterizedTypeReference<ResponseBody<RetrieveEventResponse>>() {})
                 .returnResult()
                 .getResponseBody();
 
+        assertThat(responseBody).isNotNull();
         StepVerifier.create(Mono.just(responseBody))
-                .expectNextMatches(body -> body != null && body.getData().getName().equals(testEvent.getName()))
+                .assertNext(body -> {
+                    assertThat(body.getData().getName()).isEqualTo(testEvent.getName());
+                    assertThat(body.getData().getLocation()).isEqualTo(testEvent.getLocation());
+                })
+                .verifyComplete();
+
+        testEventResponse = responseBody.getData();
+    }
+
+    @Test
+    public void testRetrieveMany() {
+        createNewEvent();
+
+        ResponseBody<List<RetrieveEventResponse>> responseBody = webTestClient
+                .get()
+                .uri("/organizer/events")
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody(new ParameterizedTypeReference<ResponseBody<List<RetrieveEventResponse>>>() {})
+                .returnResult()
+                .getResponseBody();
+
+        assertThat(responseBody).isNotNull();
+        StepVerifier.create(Mono.just(responseBody))
+                .assertNext(body -> assertThat(body.getData())
+                        .extracting(RetrieveEventResponse::getName)
+                        .contains(testEvent.getName()))
                 .verifyComplete();
     }
 
     @Test
-    public void testGetEvent() {
-        webTestClient
+    public void testGetEventDetail() {
+        createNewEvent();
+
+        ResponseBody<RetrieveEventResponse> responseBody = webTestClient
                 .get()
-                .uri("/events/{eventId}", testEvent.getId())
+                .uri("/organizer/events/{id}", testEventResponse.getId())
                 .exchange()
                 .expectStatus()
                 .isOk()
-                .expectBody()
-                .jsonPath("$.data.name").isEqualTo(testEvent.getName())
-                .jsonPath("$.data.description").isEqualTo(testEvent.getDescription());
+                .expectBody(new ParameterizedTypeReference<ResponseBody<RetrieveEventResponse>>() {})
+                .returnResult()
+                .getResponseBody();
+
+        assertThat(responseBody).isNotNull();
+        StepVerifier.create(Mono.just(responseBody))
+                .assertNext(body -> assertThat(body.getData().getName()).isEqualTo(testEvent.getName()))
+                .verifyComplete();
     }
 
     @Test
     public void testUpdateEvent() {
-        // Update event logic
-        testEvent.setName("Updated Event Name");
+        createNewEvent();
 
-        webTestClient
+        testEventResponse.setName("Updated Test Event");
+
+        ResponseBody<RetrieveEventResponse> responseBody = webTestClient
                 .put()
-                .uri("/events/{eventId}", testEvent.getId())
-                .bodyValue(testEvent)
+                .uri("/organizer/events/{id}", testEventResponse.getId())
+                .bodyValue(testEventResponse)
                 .exchange()
                 .expectStatus()
                 .isOk()
-                .expectBody()
-                .jsonPath("$.data.name").isEqualTo("Updated Event Name");
-    }*/
+                .expectBody(new ParameterizedTypeReference<ResponseBody<RetrieveEventResponse>>() {})
+                .returnResult()
+                .getResponseBody();
+
+        assertThat(responseBody).isNotNull();
+        StepVerifier.create(Mono.just(responseBody))
+                .assertNext(body -> assertThat(body.getData().getName()).isEqualTo("Updated Test Event"))
+                .verifyComplete();
+    }
+
+    @Test
+    public void testInvalidEventRetrieval() {
+        ResponseBody<RetrieveEventResponse> responseBody = webTestClient
+                .get()
+                .uri("/organizer/events/{id}", UUID.randomUUID())
+                .exchange()
+                .expectStatus()
+                .isNotFound()
+                .expectBody(new ParameterizedTypeReference<ResponseBody<RetrieveEventResponse>>() {})
+                .returnResult()
+                .getResponseBody();
+
+        assertThat(responseBody).isNull();
+    }
 
     @AfterEach
     public void tearDown() {
