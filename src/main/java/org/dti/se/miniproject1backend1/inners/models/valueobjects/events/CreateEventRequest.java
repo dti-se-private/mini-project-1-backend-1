@@ -16,13 +16,12 @@ import java.util.UUID;
 @NoArgsConstructor
 @Accessors(chain = true)
 public class CreateEventRequest extends Model {
-    private UUID accountId;
     private String name;
     private String description;
     private String location;
     private String category;
     private OffsetDateTime time;
-    private BigDecimal price;
+    private Double price;
     private Integer slots;
     private CreateVoucherRequest[] vouchers;
 }
