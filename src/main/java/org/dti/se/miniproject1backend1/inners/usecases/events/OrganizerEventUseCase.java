@@ -1,12 +1,11 @@
 package org.dti.se.miniproject1backend1.inners.usecases.events;
 
 import org.dti.se.miniproject1backend1.inners.models.entities.*;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.Session;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.CreateEventRequest;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveEventResponse;
 import org.dti.se.miniproject1backend1.inners.usecases.authentications.JwtAuthenticationUseCase;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountNotFoundException;
-import org.dti.se.miniproject1backend1.outers.exceptions.accounts.UnauthorizedAccessException;
+import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountUnAuthorizedException;
 import org.dti.se.miniproject1backend1.outers.repositories.ones.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -64,13 +63,13 @@ public class OrganizerEventUseCase {
                 });
     }
 
-    public Mono<RetrieveEventResponse> getEventById(UUID eventID, UUID accountID) {
+    public Mono<RetrieveEventResponse> getEventById(Account authenticatedAccount, UUID eventID) {
         return basicEventUseCase.getEventById(eventID)
                 .flatMap(event -> {
-                    if (event.getOrganizerAccount().getId().equals(accountID)) {
+                    if (event.getOrganizerAccount().getId().equals(authenticatedAccount.getId())) {
                         return Mono.just(event);
                     } else {
-                        return Mono.error(new UnauthorizedAccessException("unauthorized"));
+                        return Mono.error(new AccountUnAuthorizedException());
                     }
                 });
     }
@@ -94,15 +93,15 @@ public class OrganizerEventUseCase {
                     Mono<Event> savedEvent = eventRepository.save(newEvent);
 
                     Mono<EventTicket> newTicket = savedEvent.flatMap(
-                    event -> Mono.just(EventTicket.builder()
-                                        .id(UUID.randomUUID())
-                                        .eventId(event.getId())
-                                        .name(null)
-                                        .description(null)
-                                        .slots(request.getSlots())
-                                        .price(request.getPrice())
-                                        .build()
-                    ));
+                            event -> Mono.just(EventTicket.builder()
+                                    .id(UUID.randomUUID())
+                                    .eventId(event.getId())
+                                    .name(null)
+                                    .description(null)
+                                    .slots(request.getSlots())
+                                    .price(request.getPrice())
+                                    .build()
+                            ));
 
                     Mono<EventTicket> savedTicket = newTicket.flatMap(eventTicketRepository::save);
 

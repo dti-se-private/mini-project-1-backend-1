@@ -4,8 +4,8 @@ import org.dti.se.miniproject1backend1.inners.models.entities.Account;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.ResponseBody;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.CreateEventRequest;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveEventResponse;
-import org.dti.se.miniproject1backend1.inners.usecases.events.BasicEventUseCase;
 import org.dti.se.miniproject1backend1.inners.usecases.events.OrganizerEventUseCase;
+import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountUnAuthorizedException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -53,26 +53,28 @@ public class OrganizerEventRest {
             @AuthenticationPrincipal Account authenticatedAccount,
             @PathVariable UUID id
     ) {
-        return organizerEventUseCase.getEventById(id, authenticatedAccount.getId())
+        return organizerEventUseCase.getEventById(authenticatedAccount, id)
                 .map(event -> ResponseBody.<RetrieveEventResponse>builder()
                         .message("Retrieve one event detail by id and organizer succeed.")
                         .data(event)
                         .build()
                         .toEntity(HttpStatus.OK)
                 )
-                .onErrorResume(e -> {
-                    String message = e.getMessage().equals("unauthorized")
-                            ? "You are not the owner of the event."
-                            : "Internal server error.";
-                    HttpStatus status = e.getMessage().equals("unauthorized")
-                            ? HttpStatus.UNAUTHORIZED
-                            : HttpStatus.INTERNAL_SERVER_ERROR;
-                    return Mono.just(ResponseBody.<RetrieveEventResponse>builder()
-                            .message(message)
-                            .exception(e)
-                            .build()
-                            .toEntity(status));
-                });
+                .onErrorResume(AccountUnAuthorizedException.class, e -> Mono
+                        .just(ResponseBody.
+                                <RetrieveEventResponse>builder()
+                                .message("Account unauthorized.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.UNAUTHORIZED)
+                        )
+                )
+                .onErrorResume(e -> Mono.just(ResponseBody.<RetrieveEventResponse>builder()
+                        .message("Internal server error.")
+                        .exception(e)
+                        .build()
+                        .toEntity(HttpStatus.INTERNAL_SERVER_ERROR))
+                );
     }
 
     @PostMapping
@@ -88,10 +90,10 @@ public class OrganizerEventRest {
                         .toEntity(HttpStatus.CREATED)
                 )
                 .onErrorResume(e -> Mono.just(ResponseBody.<RetrieveEventResponse>builder()
-                            .message("Internal server error.")
-                            .exception(e)
-                            .build()
-                            .toEntity(HttpStatus.INTERNAL_SERVER_ERROR))
+                        .message("Internal server error.")
+                        .exception(e)
+                        .build()
+                        .toEntity(HttpStatus.INTERNAL_SERVER_ERROR))
                 );
     }
 }

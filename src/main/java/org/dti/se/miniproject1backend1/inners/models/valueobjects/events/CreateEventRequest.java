@@ -5,9 +5,7 @@ import lombok.experimental.Accessors;
 import org.dti.se.miniproject1backend1.inners.models.Model;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.vouchers.CreateVoucherRequest;
 
-import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.UUID;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
