@@ -1,9 +1,7 @@
 package org.dti.se.miniproject1backend1;
 
-import org.dti.se.miniproject1backend1.inners.models.entities.Account;
 import org.dti.se.miniproject1backend1.inners.models.entities.Event;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.ResponseBody;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.Session;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveEventResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,9 +12,6 @@ import java.util.List;
 import java.util.Objects;
 
 public class EventRestTest extends TestConfiguration {
-    Account authenticatedAccount;
-    Session authenticatedSession;
-
     @BeforeEach
     public void beforeEach() {
         configure();

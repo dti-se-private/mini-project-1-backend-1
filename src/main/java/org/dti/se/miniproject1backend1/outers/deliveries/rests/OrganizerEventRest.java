@@ -4,8 +4,8 @@ import org.dti.se.miniproject1backend1.inners.models.entities.Account;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.ResponseBody;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.CreateEventRequest;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveEventResponse;
-import org.dti.se.miniproject1backend1.inners.usecases.events.BasicEventUseCase;
 import org.dti.se.miniproject1backend1.inners.usecases.events.OrganizerEventUseCase;
+import org.dti.se.miniproject1backend1.outers.exceptions.accounts.UnauthorizedAccessException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -60,19 +60,12 @@ public class OrganizerEventRest {
                         .build()
                         .toEntity(HttpStatus.OK)
                 )
-                .onErrorResume(e -> {
-                    String message = e.getMessage().equals("unauthorized")
-                            ? "You are not the owner of the event."
-                            : "Internal server error.";
-                    HttpStatus status = e.getMessage().equals("unauthorized")
-                            ? HttpStatus.UNAUTHORIZED
-                            : HttpStatus.INTERNAL_SERVER_ERROR;
-                    return Mono.just(ResponseBody.<RetrieveEventResponse>builder()
-                            .message(message)
-                            .exception(e)
-                            .build()
-                            .toEntity(status));
-                });
+                .onErrorResume(e -> Mono.just(ResponseBody.<RetrieveEventResponse>builder()
+                        .message("Internal server error.")
+                        .exception(e)
+                        .build()
+                        .toEntity(HttpStatus.INTERNAL_SERVER_ERROR))
+                );
     }
 
     @PostMapping
@@ -92,6 +85,37 @@ public class OrganizerEventRest {
                             .exception(e)
                             .build()
                             .toEntity(HttpStatus.INTERNAL_SERVER_ERROR))
+                );
+    }
+
+    @PutMapping("/{id}")
+    public Mono<ResponseEntity<ResponseBody<RetrieveEventResponse>>> updateEvent(
+            @AuthenticationPrincipal Account authenticatedAccount,
+            @Validated RetrieveEventResponse request,
+            @PathVariable UUID id
+    ) {
+        return Mono
+                .fromCallable(() -> {
+                    if (authenticatedAccount.getId() != null
+                            && !authenticatedAccount.getId().equals(request.getOrganizerAccount().getId())) {
+                        return null;
+                    }
+                    request.setId(id);
+                    return request;
+                })
+                .switchIfEmpty(Mono.error(new UnauthorizedAccessException("You are not the owner of the event.")))
+                .flatMap(organizerEventUseCase::updateOne)
+                .map(event -> ResponseBody.<RetrieveEventResponse>builder()
+                        .message("Update event by organizer succeed.")
+                        .data(event)
+                        .build()
+                        .toEntity(HttpStatus.OK)
+                )
+                .onErrorResume(e -> Mono.just(ResponseBody.<RetrieveEventResponse>builder()
+                        .message("Internal server error.")
+                        .exception(e)
+                        .build()
+                        .toEntity(HttpStatus.INTERNAL_SERVER_ERROR))
                 );
     }
 }
