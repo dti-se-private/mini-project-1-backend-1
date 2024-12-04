@@ -45,18 +45,16 @@ public class OrganizerEventUseCase {
     @Autowired
     private EventVoucherRepository eventVoucherRepository;
 
-    public Mono<List<RetrieveEventResponse>> retrieveEvents(Session session, String page, String size) {
+    public Mono<List<RetrieveEventResponse>> retrieveEvents(String page, String size, UUID accountId) {
         return Mono
-                .fromCallable(() -> jwtAuthenticationUseCase.verify(session.getAccessToken()))
-                .map(decodedJwt -> decodedJwt.getClaim("account_id").as(UUID.class))
-                .flatMap(accountId -> accountRepository.findFirstById(accountId))
+                .fromCallable(() -> accountRepository.findFirstById(accountId))
                 .switchIfEmpty(Mono.error(new AccountNotFoundException()))
                 .flatMap(account -> {
                     int pageNumber = (page != null && !page.isEmpty()) ? Integer.parseInt(page) : 0;
                     int pageSize = (size != null && !size.isEmpty()) ? Integer.parseInt(size) : 10;
                     Pageable pageable = PageRequest.of(pageNumber, pageSize);
 
-                    return eventRepository.findByAccountId(account.getId(), pageable)
+                    return eventRepository.findByAccountId(accountId, pageable)
                             .map(event -> RetrieveEventResponse.builder()
                                     .id(event.getId())
                                     .name(event.getName())
@@ -66,32 +64,25 @@ public class OrganizerEventUseCase {
                 });
     }
 
-    public Mono<RetrieveEventResponse> getEventById(UUID eventID, Session session) {
-        return Mono
-                .fromCallable(() -> jwtAuthenticationUseCase.verify(session.getAccessToken()))
-                .map(decodedJwt -> decodedJwt.getClaim("account_id").as(UUID.class))
-                .flatMap(accountId -> accountRepository.findFirstById(accountId))
-                .switchIfEmpty(Mono.error(new AccountNotFoundException()))
-                .flatMap(account -> basicEventUseCase.getEventById(eventID)
-                        .flatMap(event -> {
-                            if (event.getOrganizerAccount().getId().equals(account.getId())) {
-                                return Mono.just(event);
-                            } else {
-                                return Mono.error(new UnauthorizedAccessException("You are not the owner of the event"));
-                            }
-                        }));
+    public Mono<RetrieveEventResponse> getEventById(UUID eventID, UUID accountID) {
+        return basicEventUseCase.getEventById(eventID)
+                .flatMap(event -> {
+                    if (event.getOrganizerAccount().getId().equals(accountID)) {
+                        return Mono.just(event);
+                    } else {
+                        return Mono.error(new UnauthorizedAccessException("unauthorized"));
+                    }
+                });
     }
 
-    public Mono<RetrieveEventResponse> saveOne(CreateEventRequest request, Session session) {
+    public Mono<RetrieveEventResponse> saveOne(CreateEventRequest request, UUID accountId) {
         return Mono
-                .fromCallable(() -> jwtAuthenticationUseCase.verify(session.getAccessToken()))
-                .map(decodedJwt -> decodedJwt.getClaim("account_id").as(UUID.class))
-                .flatMap(accountId -> accountRepository.findFirstById(accountId))
+                .fromCallable(() -> accountRepository.findFirstById(accountId))
                 .switchIfEmpty(Mono.error(new AccountNotFoundException()))
                 .flatMap(account -> {
                     Event newEvent = Event.builder()
                             .id(UUID.randomUUID())
-                            .accountId(account.getId())
+                            .accountId(accountId)
                             .name(request.getName())
                             .description(request.getDescription())
                             .location(request.getLocation())
@@ -147,7 +138,7 @@ public class OrganizerEventUseCase {
                         return eventVoucherRepository.save(eventVoucher);
                     }).collectList();
 
-                    return null;
+                    return basicEventUseCase.getEventById(newEvent.getId());
                 });
     }
 
