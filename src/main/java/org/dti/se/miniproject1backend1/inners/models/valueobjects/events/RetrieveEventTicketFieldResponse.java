@@ -4,7 +4,6 @@ import lombok.*;
 import lombok.experimental.Accessors;
 import org.dti.se.miniproject1backend1.inners.models.Model;
 
-import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -13,11 +12,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Accessors(chain = true)
-public class RetrieveEventTicketResponse extends Model {
+public class RetrieveEventTicketFieldResponse extends Model {
     private UUID id;
-    private String name;
-    private String description;
-    private Double price;
-    private Integer slots;
-    private List<RetrieveEventTicketFieldResponse> fields;
+    private String key;
 }

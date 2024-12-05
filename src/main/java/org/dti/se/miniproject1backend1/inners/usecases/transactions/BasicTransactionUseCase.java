@@ -74,7 +74,17 @@ public class BasicTransactionUseCase {
                     );
                 })
                 .flatMap(tuple -> {
-                    List<UUID> voucherIds = tuple.getT2().getT2().stream().map(Voucher::getId).toList();
+                    List<UUID> voucherIds = request
+                            .getVoucherCodes()
+                            .stream()
+                            .flatMap(code -> tuple
+                                    .getT2()
+                                    .getT2()
+                                    .stream()
+                                    .filter(voucher -> voucher.getCode().equals(code))
+                                    .map(Voucher::getId)
+                            )
+                            .toList();
                     Mono<List<AccountVoucher>> accountVouchers = accountVoucherRepository.findAllById(voucherIds).collectList();
                     return Mono.zip(
                             Mono.just(tuple.getT1()),
@@ -107,10 +117,15 @@ public class BasicTransactionUseCase {
                             .mapToDouble(EventTicket::getPrice)
                             .sum();
                     Double totalPoint = request.getPoints();
-                    Double totalVoucher = tuple
-                            .getT2()
-                            .getT2()
+                    Double totalVoucher = request
+                            .getVoucherCodes()
                             .stream()
+                            .flatMap(code -> tuple
+                                    .getT2()
+                                    .getT2()
+                                    .stream()
+                                    .filter(voucher -> voucher.getCode().equals(code))
+                            )
                             .map(voucher -> 1 - voucher.getVariableAmount())
                             .reduce(1.0, (a, b) -> a * b);
                     Double priceDeductedByPoint = Math.max(totalPrice - totalPoint, 0.0);
@@ -166,7 +181,17 @@ public class BasicTransactionUseCase {
                                     .id(UUID.randomUUID())
                                     .transactionId(newTransaction.getId())
                                     .voucherId(accountVoucher.getVoucherId())
-                                    .quantity(1)
+                                    .quantity((int) request
+                                            .getVoucherCodes()
+                                            .stream()
+                                            .flatMap(code -> tuple
+                                                    .getT2()
+                                                    .getT2()
+                                                    .stream()
+                                                    .filter(voucher -> voucher.getCode().equals(code))
+                                            )
+                                            .count()
+                                    )
                                     .build()
                             )
                             .toList();

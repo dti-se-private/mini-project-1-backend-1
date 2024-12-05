@@ -1,10 +1,6 @@
 package org.dti.se.miniproject1backend1.outers.repositories.customs;
 
-import org.dti.se.miniproject1backend1.inners.models.entities.EventTicketField;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveEventResponse;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveEventTicketResponse;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveEventVoucherResponse;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveOrganizerAccountResponse;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
@@ -70,7 +66,51 @@ public class EventCustomRepository {
                 .flatMap(event -> retrieveEventVouchersByEventIds(List.of(event.getId()))
                         .collectList()
                         .map(event::setEventVouchers)
+                )
+                .flatMap(event -> retrieveEventParticipantCountByEventId(event.getId())
+                        .map(event::setParticipantCount)
                 );
+    }
+
+    public Mono<RetrieveEventResponse> retrieveEventById(UUID id) {
+        return oneTemplate
+                .getDatabaseClient()
+                .sql("""
+                        SELECT event.*
+                        FROM event
+                        WHERE event.id = :id
+                        LIMIT 1
+                        """)
+                .bind("id", id)
+                .map((row, rowMetadata) -> RetrieveEventResponse
+                        .builder()
+                        .id(row.get("id", UUID.class))
+                        .name(row.get("name", String.class))
+                        .description(row.get("description", String.class))
+                        .category(row.get("category", String.class))
+                        .time(row.get("time", OffsetDateTime.class))
+                        .location(row.get("location", String.class))
+                        .bannerImageUrl(row.get("banner_image_url", String.class))
+                        .eventTickets(new ArrayList<>())
+                        .eventVouchers(new ArrayList<>())
+                        .build()
+                )
+                .all()
+                .flatMap(event -> retrieveOrganizerAccountsByEventIds(List.of(event.getId()))
+                        .map(event::setOrganizerAccount)
+                )
+                .flatMap(event -> retrieveEventTicketsByEventIds(List.of(event.getId()))
+                        .collectList()
+                        .map(event::setEventTickets)
+                )
+                .flatMap(event -> retrieveEventVouchersByEventIds(List.of(event.getId()))
+                        .collectList()
+                        .map(event::setEventVouchers)
+                )
+                .flatMap(event -> retrieveEventParticipantCountByEventId(event.getId())
+                        .map(event::setParticipantCount)
+                )
+                .single();
     }
 
     public Flux<RetrieveOrganizerAccountResponse> retrieveOrganizerAccountsByEventIds(List<UUID> eventIds) {
@@ -96,7 +136,7 @@ public class EventCustomRepository {
                 .all();
     }
 
-    public Flux<EventTicketField> retrieveEventTicketFieldsByTicketId(UUID ticketId) {
+    public Flux<RetrieveEventTicketFieldResponse> retrieveEventTicketFieldsByTicketId(UUID ticketId) {
         return oneTemplate
                 .getDatabaseClient()
                 .sql("""
@@ -105,10 +145,9 @@ public class EventCustomRepository {
                         WHERE event_ticket_field.event_ticket_id = :ticketId
                         """)
                 .bind("ticketId", ticketId)
-                .map((row, rowMetadata) -> EventTicketField
+                .map((row, rowMetadata) -> RetrieveEventTicketFieldResponse
                         .builder()
                         .id(row.get("id", UUID.class))
-                        .eventTicketId(row.get("event_ticket_id", UUID.class))
                         .key(row.get("key", String.class))
                         .build()
                 )
@@ -136,7 +175,8 @@ public class EventCustomRepository {
                 )
                 .all()
                 .flatMap(ticket -> retrieveEventTicketFieldsByTicketId(ticket.getId())
-                        .map(ticketField -> ticket.getFields().add(ticketField.getKey()))
+                        .collectList()
+                        .map(ticket::setFields)
                         .then(Mono.just(ticket))
                 );
     }
@@ -163,5 +203,18 @@ public class EventCustomRepository {
                         .build()
                 )
                 .all();
+    }
+
+    public Mono<Integer> retrieveEventParticipantCountByEventId(UUID eventId) {
+        return oneTemplate
+                .getDatabaseClient()
+                .sql("""
+                        SELECT COUNT(transaction.id) AS count
+                        FROM transaction
+                        WHERE transaction.event_id = :eventId
+                        """)
+                .bind("eventId", eventId)
+                .map((row, rowMetadata) -> row.get("count", Integer.class))
+                .one();
     }
 }
