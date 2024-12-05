@@ -1,5 +1,6 @@
 package org.dti.se.miniproject1backend1;
 
+import org.dti.se.miniproject1backend1.inners.models.entities.Event;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.ResponseBody;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.CreateEventRequest;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveEventResponse;
@@ -11,6 +12,7 @@ import reactor.test.StepVerifier;
 
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -18,16 +20,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class OrganizerEventRestTest extends TestConfiguration {
-
-    private CreateEventRequest testEvent;
-    private RetrieveEventResponse testEventResponse;
+    protected ArrayList<Event> fakeEvents = new ArrayList<>();
 
     @BeforeEach
-    public void setUp() {
+    public void beforeEach() {
         configure();
         populate();
         auth();
+    }
 
+    @AfterEach
+    public void afterEach() {
+        deauth();
+        depopulate();
+    }
+
+    @Test
+    public void testCreateNewEvent() {
         OffsetDateTime now = OffsetDateTime.now().truncatedTo(ChronoUnit.MICROS);
 
         CreateVoucherRequest testVoucher = CreateVoucherRequest.builder()
@@ -39,7 +48,7 @@ public class OrganizerEventRestTest extends TestConfiguration {
                 .endedAt(now.plusDays(7))
                 .build();
 
-        testEvent = CreateEventRequest.builder()
+        CreateEventRequest testEvent = CreateEventRequest.builder()
                 .name("Test Event")
                 .description("Description for Test Event")
                 .category("Test Category")
@@ -48,10 +57,7 @@ public class OrganizerEventRestTest extends TestConfiguration {
                 .slots(100)
                 .vouchers(new CreateVoucherRequest[]{testVoucher})
                 .build();
-    }
 
-    @Test
-    public void createNewEvent() {
         ResponseBody<RetrieveEventResponse> responseBody = webTestClient
                 .post()
                 .uri("/organizer/events")
@@ -71,12 +77,18 @@ public class OrganizerEventRestTest extends TestConfiguration {
                 })
                 .verifyComplete();
 
-        testEventResponse = responseBody.getData();
+        Event fakeEvent = Event
+                .builder()
+                .id(responseBody.getData().getId())
+                .accountId(responseBody.getData().getOrganizerAccount().getId())
+                .name(responseBody.getData().getName())
+                .build();
+        fakeEvents.add(fakeEvent);
     }
 
     @Test
     public void testRetrieveMany() {
-        createNewEvent();
+        Event event = fakeEvents.getFirst();
 
         ResponseBody<List<RetrieveEventResponse>> responseBody = webTestClient
                 .get()
@@ -92,17 +104,17 @@ public class OrganizerEventRestTest extends TestConfiguration {
         StepVerifier.create(Mono.just(responseBody))
                 .assertNext(body -> assertThat(body.getData())
                         .extracting(RetrieveEventResponse::getName)
-                        .contains(testEvent.getName()))
+                        .contains(event.getName()))
                 .verifyComplete();
     }
 
     @Test
     public void testGetEventDetail() {
-        createNewEvent();
+        Event event = fakeEvents.getFirst();
 
         ResponseBody<RetrieveEventResponse> responseBody = webTestClient
                 .get()
-                .uri("/organizer/events/{id}", testEventResponse.getId())
+                .uri("/organizer/events/{id}", event.getId())
                 .exchange()
                 .expectStatus()
                 .isOk()
@@ -112,20 +124,30 @@ public class OrganizerEventRestTest extends TestConfiguration {
 
         assertThat(responseBody).isNotNull();
         StepVerifier.create(Mono.just(responseBody))
-                .assertNext(body -> assertThat(body.getData().getName()).isEqualTo(testEvent.getName()))
+                .assertNext(body -> assertThat(
+                        body.getData().getName()).isEqualTo(event.getName()))
                 .verifyComplete();
     }
 
     @Test
     public void testUpdateEvent() {
-        createNewEvent();
-
-        testEventResponse.setName("Updated Test Event");
+        Event event = fakeEvents.getFirst();
+        ResponseBody<RetrieveEventResponse> responseBodyPrepare = webTestClient
+                .get()
+                .uri("/organizer/events/{id}", event.getId())
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody(new ParameterizedTypeReference<ResponseBody<RetrieveEventResponse>>() {})
+                .returnResult()
+                .getResponseBody();
+        assert responseBodyPrepare != null;
+        RetrieveEventResponse eventResponse = responseBodyPrepare.getData();
 
         ResponseBody<RetrieveEventResponse> responseBody = webTestClient
                 .put()
-                .uri("/organizer/events/{id}", testEventResponse.getId())
-                .bodyValue(testEventResponse)
+                .uri("/organizer/events/{id}", event.getId())
+                .bodyValue(eventResponse)
                 .exchange()
                 .expectStatus()
                 .isOk()
@@ -152,11 +174,5 @@ public class OrganizerEventRestTest extends TestConfiguration {
                 .getResponseBody();
 
         assertThat(responseBody).isNull();
-    }
-
-    @AfterEach
-    public void tearDown() {
-        deauth();
-        depopulate();
     }
 }
