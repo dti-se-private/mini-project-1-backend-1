@@ -53,7 +53,7 @@ public class OrganizerEventRest {
             @AuthenticationPrincipal Account authenticatedAccount,
             @PathVariable UUID id
     ) {
-        return organizerEventUseCase.getEventById(authenticatedAccount, id)
+        return organizerEventUseCase.retrieveEventById(authenticatedAccount, id)
                 .map(event -> ResponseBody.<RetrieveEventResponse>builder()
                         .message("Retrieve one event detail by id and organizer succeed.")
                         .data(event)

@@ -166,7 +166,17 @@ public class BasicTransactionUseCase {
                                     .id(UUID.randomUUID())
                                     .transactionId(newTransaction.getId())
                                     .voucherId(accountVoucher.getVoucherId())
-                                    .quantity(1)
+                                    .quantity((int) request
+                                            .getVoucherCodes()
+                                            .stream()
+                                            .flatMap(code -> tuple
+                                                    .getT2()
+                                                    .getT2()
+                                                    .stream()
+                                                    .filter(voucher -> voucher.getCode().equals(code))
+                                            )
+                                            .count()
+                                    )
                                     .build()
                             )
                             .toList();

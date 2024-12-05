@@ -63,8 +63,8 @@ public class OrganizerEventUseCase {
                 });
     }
 
-    public Mono<RetrieveEventResponse> getEventById(Account authenticatedAccount, UUID eventID) {
-        return basicEventUseCase.getEventById(eventID)
+    public Mono<RetrieveEventResponse> retrieveEventById(Account authenticatedAccount, UUID eventID) {
+        return basicEventUseCase.retrieveEventById(eventID)
                 .flatMap(event -> {
                     if (event.getOrganizerAccount().getId().equals(authenticatedAccount.getId())) {
                         return Mono.just(event);
@@ -137,7 +137,7 @@ public class OrganizerEventUseCase {
                         return eventVoucherRepository.save(eventVoucher);
                     }).collectList();
 
-                    return basicEventUseCase.getEventById(newEvent.getId());
+                    return basicEventUseCase.retrieveEventById(newEvent.getId());
                 });
     }
 
