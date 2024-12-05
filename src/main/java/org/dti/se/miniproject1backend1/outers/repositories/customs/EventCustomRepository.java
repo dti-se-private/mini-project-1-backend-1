@@ -70,7 +70,51 @@ public class EventCustomRepository {
                 .flatMap(event -> retrieveEventVouchersByEventIds(List.of(event.getId()))
                         .collectList()
                         .map(event::setEventVouchers)
+                )
+                .flatMap(event -> retrieveEventParticipantCountByEventId(event.getId())
+                        .map(event::setParticipantCount)
                 );
+    }
+
+    public Mono<RetrieveEventResponse> retrieveEventById(UUID id) {
+        return oneTemplate
+                .getDatabaseClient()
+                .sql("""
+                        SELECT event.*
+                        FROM event
+                        WHERE event.id = :id
+                        LIMIT 1
+                        """)
+                .bind("id", id)
+                .map((row, rowMetadata) -> RetrieveEventResponse
+                        .builder()
+                        .id(row.get("id", UUID.class))
+                        .name(row.get("name", String.class))
+                        .description(row.get("description", String.class))
+                        .category(row.get("category", String.class))
+                        .time(row.get("time", OffsetDateTime.class))
+                        .location(row.get("location", String.class))
+                        .bannerImageUrl(row.get("banner_image_url", String.class))
+                        .eventTickets(new ArrayList<>())
+                        .eventVouchers(new ArrayList<>())
+                        .build()
+                )
+                .all()
+                .flatMap(event -> retrieveOrganizerAccountsByEventIds(List.of(event.getId()))
+                        .map(event::setOrganizerAccount)
+                )
+                .flatMap(event -> retrieveEventTicketsByEventIds(List.of(event.getId()))
+                        .collectList()
+                        .map(event::setEventTickets)
+                )
+                .flatMap(event -> retrieveEventVouchersByEventIds(List.of(event.getId()))
+                        .collectList()
+                        .map(event::setEventVouchers)
+                )
+                .flatMap(event -> retrieveEventParticipantCountByEventId(event.getId())
+                        .map(event::setParticipantCount)
+                )
+                .single();
     }
 
     public Flux<RetrieveOrganizerAccountResponse> retrieveOrganizerAccountsByEventIds(List<UUID> eventIds) {
@@ -163,5 +207,18 @@ public class EventCustomRepository {
                         .build()
                 )
                 .all();
+    }
+
+    public Mono<Integer> retrieveEventParticipantCountByEventId(UUID eventId) {
+        return oneTemplate
+                .getDatabaseClient()
+                .sql("""
+                        SELECT COUNT(transaction.id) AS count
+                        FROM transaction
+                        WHERE transaction.event_id = :eventId
+                        """)
+                .bind("eventId", eventId)
+                .map((row, rowMetadata) -> row.get("count", Integer.class))
+                .one();
     }
 }

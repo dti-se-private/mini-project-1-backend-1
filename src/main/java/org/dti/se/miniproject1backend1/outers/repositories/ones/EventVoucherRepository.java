@@ -11,5 +11,5 @@ import java.util.UUID;
 public interface EventVoucherRepository extends R2dbcRepository<EventVoucher, UUID> {
     Flux<EventVoucher> findByEventId(UUID eventId);
 
-    Flux<EventVoucher> findByVoucherId(UUID voucherId);
+    Flux<EventVoucher> findAllByEventId(UUID id);
 }

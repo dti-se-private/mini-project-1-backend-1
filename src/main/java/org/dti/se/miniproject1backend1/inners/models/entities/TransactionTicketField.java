@@ -1,8 +1,6 @@
 package org.dti.se.miniproject1backend1.inners.models.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.datatype.jsr310.ser.OffsetDateTimeSerializer;
 import lombok.*;
 import lombok.experimental.Accessors;
 import org.dti.se.miniproject1backend1.inners.models.Model;
@@ -11,7 +9,6 @@ import org.springframework.data.annotation.Transient;
 import org.springframework.data.domain.Persistable;
 import org.springframework.data.relational.core.mapping.Table;
 
-import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Data
@@ -20,14 +17,13 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Accessors(chain = true)
-@Table(name = "transaction")
-public class Transaction extends Model implements Persistable<UUID> {
+@Table(name = "transaction_ticket_field")
+public class TransactionTicketField extends Model implements Persistable<UUID> {
     @Id
     private UUID id;
-    private UUID accountId;
-    private UUID eventId;
-    @JsonSerialize(using = OffsetDateTimeSerializer.class)
-    private OffsetDateTime time;
+    private UUID transactionId;
+    private UUID eventTicketFieldId;
+    private String value;
 
     @Transient
     @Builder.Default
