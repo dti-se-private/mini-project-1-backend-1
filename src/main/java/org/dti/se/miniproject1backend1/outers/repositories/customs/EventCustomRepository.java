@@ -1,10 +1,6 @@
 package org.dti.se.miniproject1backend1.outers.repositories.customs;
 
-import org.dti.se.miniproject1backend1.inners.models.entities.EventTicketField;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveEventResponse;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveEventTicketResponse;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveEventVoucherResponse;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveOrganizerAccountResponse;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
@@ -140,7 +136,7 @@ public class EventCustomRepository {
                 .all();
     }
 
-    public Flux<EventTicketField> retrieveEventTicketFieldsByTicketId(UUID ticketId) {
+    public Flux<RetrieveEventTicketFieldResponse> retrieveEventTicketFieldsByTicketId(UUID ticketId) {
         return oneTemplate
                 .getDatabaseClient()
                 .sql("""
@@ -149,10 +145,9 @@ public class EventCustomRepository {
                         WHERE event_ticket_field.event_ticket_id = :ticketId
                         """)
                 .bind("ticketId", ticketId)
-                .map((row, rowMetadata) -> EventTicketField
+                .map((row, rowMetadata) -> RetrieveEventTicketFieldResponse
                         .builder()
                         .id(row.get("id", UUID.class))
-                        .eventTicketId(row.get("event_ticket_id", UUID.class))
                         .key(row.get("key", String.class))
                         .build()
                 )
@@ -180,7 +175,8 @@ public class EventCustomRepository {
                 )
                 .all()
                 .flatMap(ticket -> retrieveEventTicketFieldsByTicketId(ticket.getId())
-                        .map(ticketField -> ticket.getFields().add(ticketField.getKey()))
+                        .collectList()
+                        .map(ticket::setFields)
                         .then(Mono.just(ticket))
                 );
     }

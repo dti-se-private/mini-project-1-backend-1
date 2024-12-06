@@ -11,7 +11,7 @@ public class WebHolder {
 
     public static Mono<ReactiveTransaction> getTransaction() {
         return Mono
-                .deferContextual(contextView -> contextView.get(TRANSACTION_CONTEXT_KEY))
+                .deferContextual(contextView -> Mono.just(contextView.get(TRANSACTION_CONTEXT_KEY)))
                 .cast(ReactiveTransaction.class);
     }
 
