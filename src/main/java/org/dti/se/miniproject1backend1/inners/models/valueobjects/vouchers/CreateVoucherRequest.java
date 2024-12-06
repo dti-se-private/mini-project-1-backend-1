@@ -1,12 +1,9 @@
 package org.dti.se.miniproject1backend1.inners.models.valueobjects.vouchers;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.datatype.jsr310.ser.OffsetDateTimeSerializer;
 import lombok.*;
 import lombok.experimental.Accessors;
 import org.dti.se.miniproject1backend1.inners.models.Model;
 
-import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 @Data

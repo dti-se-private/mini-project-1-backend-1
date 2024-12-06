@@ -22,7 +22,7 @@ public class RetrieveEventResponse extends Model {
     private String category;
     private OffsetDateTime time;
     private String bannerImageUrl;
-    private Integer numberOfParticipants;
+    private Integer participantCount;
     private RetrieveOrganizerAccountResponse organizerAccount;
     private List<RetrieveEventTicketResponse> eventTickets;
     private List<RetrieveEventVoucherResponse> eventVouchers;

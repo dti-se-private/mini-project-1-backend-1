@@ -3,6 +3,7 @@ package org.dti.se.miniproject1backend1.outers.deliveries.rests;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.ResponseBody;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveEventResponse;
 import org.dti.se.miniproject1backend1.inners.usecases.events.BasicEventUseCase;
+import org.dti.se.miniproject1backend1.outers.exceptions.events.EventNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -45,13 +46,23 @@ public class EventRest {
     }
 
     @GetMapping("/{id}")
-    public Mono<ResponseEntity<ResponseBody<RetrieveEventResponse>>> getEventDetail(@PathVariable UUID id) {
-        return basicEventUseCase.getEventById(id)
-                .map(event -> ResponseBody.<RetrieveEventResponse>builder()
+    public Mono<ResponseEntity<ResponseBody<RetrieveEventResponse>>> retrieveEventById(@PathVariable UUID id) {
+        return basicEventUseCase.retrieveEventById(id)
+                .map(event -> ResponseBody
+                        .<RetrieveEventResponse>builder()
                         .message("Retrieve one event by id succeed.")
                         .data(event)
                         .build()
                         .toEntity(HttpStatus.OK)
+                )
+                .onErrorResume(EventNotFoundException.class, e -> Mono
+                        .just(ResponseBody
+                                .<RetrieveEventResponse>builder()
+                                .message("Event not found.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.NOT_FOUND)
+                        )
                 )
                 .onErrorResume(e -> Mono
                         .just(ResponseBody
