@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -120,19 +119,20 @@ public class OrganizerEventUseCase {
                                                             .build())
                                                     .flatMap(eventTicketFieldRepository::save);
 
-                                            Flux<Voucher> savedVouchers = Flux.fromStream(
-                                                    Arrays.stream(request.getVouchers())
-                                                            .map(voucher -> Voucher.builder()
-                                                                    .id(UUID.randomUUID())
-                                                                    .code(UUID.randomUUID().toString())
-                                                                    .name(voucher.getName())
-                                                                    .description(voucher.getDescription())
-                                                                    .variableAmount(voucher.getVariableAmount())
-                                                                    .startedAt(voucher.getStartedAt())
-                                                                    .endedAt(voucher.getEndedAt())
-                                                                    .build())
-                                                            .map(voucherRepository::save)
-                                            ).flatMap(voucherMono -> voucherMono);
+                                            Flux<Voucher> savedVouchers = request.getVouchers() != null
+                                                    ? Flux.fromIterable(request.getVouchers()) // Use fromIterable for List
+                                                    .map(voucher -> Voucher.builder()
+                                                            .id(UUID.randomUUID())
+                                                            .code(UUID.randomUUID().toString())
+                                                            .name(voucher.getName())
+                                                            .description(voucher.getDescription())
+                                                            .variableAmount(voucher.getVariableAmount())
+                                                            .startedAt(voucher.getStartedAt())
+                                                            .endedAt(voucher.getEndedAt())
+                                                            .build())
+                                                    .map(voucherRepository::save)
+                                                    .flatMap(voucherMono -> voucherMono)
+                                                    : Flux.empty();
 
                                             Flux<EventVoucher> savedEventVouchers = savedVouchers
                                                     .flatMap(savedVoucher -> {
@@ -145,6 +145,7 @@ public class OrganizerEventUseCase {
                                                     });
 
                                             return savedFields.then(Mono.just(savedEventVouchers))
+                                                    .thenMany(savedEventVouchers).then(Mono.just(savedEvent))
                                                     .then(Mono.just(savedEvent));
                                         });
                             });
@@ -161,6 +162,7 @@ public class OrganizerEventUseCase {
                     event.setLocation(request.getLocation());
                     event.setCategory(request.getCategory());
                     event.setTime(request.getTime());
+                    event.setIsNew(false);
 
                     Mono<Event> updatedEventMono = eventRepository.save(event);
 
@@ -170,6 +172,7 @@ public class OrganizerEventUseCase {
                                     .flatMap(existingTicket -> {
                                         existingTicket.setSlots(ticketRequest.getSlots());
                                         existingTicket.setPrice(ticketRequest.getPrice());
+                                        existingTicket.setIsNew(false);
                                         return eventTicketRepository.save(existingTicket);
                                     })
                             ).collectList();
@@ -183,6 +186,7 @@ public class OrganizerEventUseCase {
                                         existingVoucher.setVariableAmount(voucherRequest.getVariableAmount());
                                         existingVoucher.setStartedAt(voucherRequest.getStartedAt());
                                         existingVoucher.setEndedAt(voucherRequest.getEndedAt());
+                                        existingVoucher.setIsNew(false);
                                         return voucherRepository.save(existingVoucher);
                                     })
                             ).collectList();

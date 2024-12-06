@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
@@ -26,8 +25,8 @@ public class OrganizerEventRest {
     @GetMapping
     public Mono<ResponseEntity<ResponseBody<List<RetrieveEventResponse>>>> retrieveMany(
             @AuthenticationPrincipal Account authenticatedAccount,
-            String page,
-            String size
+            @RequestParam String page,
+            @RequestParam String size
     ) {
         return organizerEventUseCase.retrieveEvents(page, size, authenticatedAccount.getId())
                 .map(eventList -> ResponseBody
@@ -71,7 +70,7 @@ public class OrganizerEventRest {
     @PostMapping
     public Mono<ResponseEntity<ResponseBody<RetrieveEventResponse>>> createNewEvent(
             @AuthenticationPrincipal Account authenticatedAccount,
-            @Validated CreateEventRequest request
+            @RequestBody CreateEventRequest request
     ) {
         return organizerEventUseCase.saveOne(request, authenticatedAccount.getId())
                 .map(event -> ResponseBody.<RetrieveEventResponse>builder()
@@ -88,10 +87,10 @@ public class OrganizerEventRest {
                 );
     }
 
-    @PutMapping("/{id}")
+    @PatchMapping("/{id}")
     public Mono<ResponseEntity<ResponseBody<RetrieveEventResponse>>> updateEvent(
             @AuthenticationPrincipal Account authenticatedAccount,
-            @Validated RetrieveEventResponse request,
+            @RequestBody RetrieveEventResponse request,
             @PathVariable UUID id
     ) {
         return Mono

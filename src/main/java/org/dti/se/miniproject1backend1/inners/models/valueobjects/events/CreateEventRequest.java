@@ -6,6 +6,7 @@ import org.dti.se.miniproject1backend1.inners.models.Model;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.vouchers.CreateVoucherRequest;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -21,5 +22,5 @@ public class CreateEventRequest extends Model {
     private OffsetDateTime time;
     private Double price;
     private Integer slots;
-    private CreateVoucherRequest[] vouchers;
+    private List<CreateVoucherRequest> vouchers;
 }
