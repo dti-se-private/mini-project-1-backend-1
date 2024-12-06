@@ -46,7 +46,7 @@ public class BasicAuthenticationUseCase {
                             return Session
                                     .builder()
                                     .accountId(account.getId())
-                                    .accessToken(jwtAuthenticationUseCase.generate(account, now.plusMinutes(5)))
+                                    .accessToken(jwtAuthenticationUseCase.generate(account, now.plusSeconds(30)))
                                     .refreshToken(jwtAuthenticationUseCase.generate(account, now.plusDays(3)))
                                     .accessTokenExpiredAt(now.plusMinutes(5))
                                     .refreshTokenExpiredAt(now.plusDays(3))

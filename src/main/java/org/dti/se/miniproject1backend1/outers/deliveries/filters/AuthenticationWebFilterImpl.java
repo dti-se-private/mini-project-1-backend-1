@@ -1,9 +1,11 @@
 package org.dti.se.miniproject1backend1.outers.deliveries.filters;
 
+import com.auth0.jwt.exceptions.TokenExpiredException;
 import org.dti.se.miniproject1backend1.outers.configurations.SecurityConfiguration;
 import org.dti.se.miniproject1backend1.outers.repositories.twos.SessionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
@@ -27,6 +29,13 @@ public class AuthenticationWebFilterImpl extends AuthenticationWebFilter {
                 .flatMap(accessToken -> sessionRepository.getByAccessToken(accessToken))
                 .map(session -> new UsernamePasswordAuthenticationToken(null, session))
                 .flatMap(authenticationManager::authenticate)
+                .onErrorResume(TokenExpiredException.class, exception -> {
+                    exchange
+                            .getResponse()
+                            .setRawStatusCode(HttpStatus.UNAUTHORIZED.value());
+                    return Mono.empty();
+                })
+
         );
         setRequiresAuthenticationMatcher(ServerWebExchangeMatchers.anyExchange());
     }

@@ -105,4 +105,81 @@ public class TransactionRestTest extends TestConfiguration {
                     assert body.getData().getFinalPrice() >= 0.0;
                 });
     }
+
+
+    @Test
+    public void testTryCheckout() {
+        Event event = fakeEvents.getFirst();
+
+        List<TransactionTicketCheckoutRequest> transactionTickets = fakeEventTickets
+                .stream()
+                .filter(eventTicket -> eventTicket.getEventId().equals(event.getId()))
+                .map(eventTicket -> {
+                    List<TransactionTicketFieldCheckoutRequest> fields = fakeEventTicketFields
+                            .stream()
+                            .filter(eventTicketField -> eventTicketField
+                                    .getEventTicketId()
+                                    .equals(eventTicket.getId())
+                            )
+                            .map(eventTicketField -> TransactionTicketFieldCheckoutRequest
+                                    .builder()
+                                    .key(eventTicketField.getKey())
+                                    .value("%s-%s".formatted(eventTicketField.getKey(), UUID.randomUUID().toString()))
+                                    .build()
+                            )
+                            .toList();
+
+                    return TransactionTicketCheckoutRequest
+                            .builder()
+                            .eventTicketId(eventTicket.getId())
+                            .fields(fields)
+                            .build();
+                })
+                .toList();
+
+        List<String> voucherCodes = fakeAccountVouchers
+                .stream()
+                .filter(accountVoucher -> accountVoucher.getAccountId().equals(authenticatedAccount.getId()))
+                .flatMap(accountVoucher -> fakeVouchers
+                        .stream()
+                        .filter(voucher -> voucher.getId().equals(accountVoucher.getVoucherId()))
+                        .map(Voucher::getCode)
+                )
+                .toList();
+
+        Double points = fakePoints
+                .stream()
+                .filter(point -> point.getAccountId().equals(authenticatedAccount.getId()))
+                .map(Point::getFixedAmount)
+                .reduce(0.0, Double::sum);
+
+        TransactionCheckoutRequest request = TransactionCheckoutRequest
+                .builder()
+                .eventId(event.getId())
+                .transactionTickets(transactionTickets)
+                .voucherCodes(voucherCodes)
+                .points(points)
+                .build();
+
+        webTestClient
+                .post()
+                .uri("/transactions/try-checkout")
+                .bodyValue(request)
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody(new ParameterizedTypeReference<ResponseBody<TransactionCheckoutResponse>>() {
+                })
+                .value(body -> {
+                    assert body != null;
+                    assert body.getMessage().equals("Checkout succeed.");
+                    assert body.getData() != null;
+                    assert body.getData().getId() != null;
+                    assert body.getData().getEventId().equals(event.getId());
+                    assert body.getData().getTransactionTickets().size() == transactionTickets.size();
+                    assert voucherCodes.containsAll(body.getData().getVoucherCodes());
+                    assert body.getData().getPoints() <= points;
+                    assert body.getData().getFinalPrice() >= 0.0;
+                });
+    }
 }
