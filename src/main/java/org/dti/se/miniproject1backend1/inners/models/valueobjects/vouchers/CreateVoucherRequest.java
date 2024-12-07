@@ -13,7 +13,6 @@ import java.time.OffsetDateTime;
 @NoArgsConstructor
 @Accessors(chain = true)
 public class CreateVoucherRequest extends Model {
-    private String code;
     private String name;
     private String description;
     private Double variableAmount;
