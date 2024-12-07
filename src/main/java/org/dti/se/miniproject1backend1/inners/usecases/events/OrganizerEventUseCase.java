@@ -7,6 +7,7 @@ import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.Retriev
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveEventVoucherResponse;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountNotFoundException;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountUnAuthorizedException;
+import org.dti.se.miniproject1backend1.outers.exceptions.events.VoucherNotFoundException;
 import org.dti.se.miniproject1backend1.outers.repositories.ones.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -158,7 +159,7 @@ public class OrganizerEventUseCase {
                 .flatMap(event -> Mono.zip(
                         updateEventDetails(event, request),
                         updateEventTickets(request.getEventTickets()),
-                        updateVouchers(request.getEventVouchers()),
+                        updateVouchers(request.getEventVouchers(), request.getId()),
                         eventVoucherRepository.findByEventId(event.getId()).collectList()
                 ).flatMap(tuple -> handleVoucherDeletion(tuple.getT3(), tuple.getT4())
                         .then(createResponse(tuple.getT1(), tuple.getT2(), tuple.getT3()))));
@@ -188,30 +189,49 @@ public class OrganizerEventUseCase {
                 .collectList();
     }
 
-    private Mono<List<Voucher>> updateVouchers(List<RetrieveEventVoucherResponse> eventVouchers) {
+    private Mono<List<Voucher>> updateVouchers(
+            List<RetrieveEventVoucherResponse> eventVouchers,
+            UUID eventId
+    ) {
         return Flux.fromIterable(eventVouchers)
-                .flatMap(voucherRequest -> voucherRepository.findById(voucherRequest.getId())
-                        .switchIfEmpty(Mono.defer(() -> {
-                            Voucher newVoucher = new Voucher();
-                            newVoucher.setId(UUID.randomUUID());
-                            newVoucher.setCode(UUID.randomUUID().toString());
-                            newVoucher.setName(voucherRequest.getName());
-                            newVoucher.setDescription(voucherRequest.getDescription());
-                            newVoucher.setVariableAmount(voucherRequest.getVariableAmount());
-                            newVoucher.setStartedAt(voucherRequest.getStartedAt());
-                            newVoucher.setEndedAt(voucherRequest.getEndedAt());
-                            newVoucher.setIsNew(true);
-                            return voucherRepository.save(newVoucher);
-                        }))
-                        .flatMap(existingVoucher -> Mono.fromCallable(() -> {
-                            existingVoucher.setName(voucherRequest.getName());
-                            existingVoucher.setDescription(voucherRequest.getDescription());
-                            existingVoucher.setVariableAmount(voucherRequest.getVariableAmount());
-                            existingVoucher.setStartedAt(voucherRequest.getStartedAt());
-                            existingVoucher.setEndedAt(voucherRequest.getEndedAt());
-                            existingVoucher.setIsNew(false);
-                            return existingVoucher;
-                        }).flatMap(voucherRepository::save)))
+                .flatMap(voucherRequest -> {
+                    if (voucherRequest.getId() == null) {
+                        Voucher newVoucher = new Voucher();
+                        newVoucher.setId(UUID.randomUUID());
+                        newVoucher.setCode(UUID.randomUUID().toString());
+                        newVoucher.setName(voucherRequest.getName());
+                        newVoucher.setDescription(voucherRequest.getDescription());
+                        newVoucher.setVariableAmount(voucherRequest.getVariableAmount());
+                        newVoucher.setStartedAt(voucherRequest.getStartedAt());
+                        newVoucher.setEndedAt(voucherRequest.getEndedAt());
+                        return voucherRepository.save(newVoucher)
+                                .flatMap(savedVoucher -> {
+                                    EventVoucher eventVoucher = EventVoucher.builder()
+                                            .id(UUID.randomUUID())
+                                            .eventId(eventId)
+                                            .voucherId(savedVoucher.getId())
+                                            .build();
+                                    return eventVoucherRepository.save(eventVoucher)
+                                            .thenReturn(savedVoucher);
+                                });
+                    } else {
+                        return voucherRepository.findById(voucherRequest.getId())
+                                .flatMap(existingVoucher -> {
+                                    if (existingVoucher != null) {
+                                        existingVoucher.setName(voucherRequest.getName());
+                                        existingVoucher.setDescription(voucherRequest.getDescription());
+                                        existingVoucher.setVariableAmount(voucherRequest.getVariableAmount());
+                                        existingVoucher.setStartedAt(voucherRequest.getStartedAt());
+                                        existingVoucher.setEndedAt(voucherRequest.getEndedAt());
+                                        existingVoucher.setIsNew(false);
+                                        return voucherRepository.save(existingVoucher);
+                                    } else {
+                                        return Mono.error(new VoucherNotFoundException("Voucher not found with ID: "
+                                                + voucherRequest.getId()));
+                                    }
+                                });
+                    }
+                })
                 .collectList();
     }
 
@@ -231,7 +251,10 @@ public class OrganizerEventUseCase {
                 .then());
     }
 
-    private Mono<RetrieveEventResponse> createResponse(Event updatedEvent, List<EventTicket> updatedTickets, List<Voucher> updatedVouchers) {
+    private Mono<RetrieveEventResponse> createResponse(
+            Event updatedEvent,
+            List<EventTicket> updatedTickets,
+            List<Voucher> updatedVouchers) {
         return transactionRepository.countByEventId(updatedEvent.getId())
                 .defaultIfEmpty(0)
                 .flatMap(participantCount -> Mono.fromCallable(() -> RetrieveEventResponse.builder()
