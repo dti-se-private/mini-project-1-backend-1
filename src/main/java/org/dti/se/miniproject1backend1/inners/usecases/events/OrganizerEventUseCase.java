@@ -191,18 +191,25 @@ public class OrganizerEventUseCase {
     private Mono<List<Voucher>> updateVouchers(List<RetrieveEventVoucherResponse> eventVouchers) {
         return Flux.fromIterable(eventVouchers)
                 .flatMap(voucherRequest -> voucherRepository.findById(voucherRequest.getId())
+                        .switchIfEmpty(Mono.defer(() -> {
+                            Voucher newVoucher = new Voucher();
+                            newVoucher.setId(UUID.randomUUID());
+                            newVoucher.setCode(UUID.randomUUID().toString());
+                            newVoucher.setName(voucherRequest.getName());
+                            newVoucher.setDescription(voucherRequest.getDescription());
+                            newVoucher.setVariableAmount(voucherRequest.getVariableAmount());
+                            newVoucher.setStartedAt(voucherRequest.getStartedAt());
+                            newVoucher.setEndedAt(voucherRequest.getEndedAt());
+                            newVoucher.setIsNew(true);
+                            return voucherRepository.save(newVoucher);
+                        }))
                         .flatMap(existingVoucher -> Mono.fromCallable(() -> {
                             existingVoucher.setName(voucherRequest.getName());
                             existingVoucher.setDescription(voucherRequest.getDescription());
                             existingVoucher.setVariableAmount(voucherRequest.getVariableAmount());
                             existingVoucher.setStartedAt(voucherRequest.getStartedAt());
                             existingVoucher.setEndedAt(voucherRequest.getEndedAt());
-                            if (voucherRequest.getId() == null) {
-                                existingVoucher.setId(UUID.randomUUID());
-                                existingVoucher.setCode(UUID.randomUUID().toString());
-                            } else {
-                                existingVoucher.setIsNew(false);
-                            }
+                            existingVoucher.setIsNew(false);
                             return existingVoucher;
                         }).flatMap(voucherRepository::save)))
                 .collectList();
