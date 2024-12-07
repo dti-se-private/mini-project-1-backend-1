@@ -186,46 +186,80 @@ public class OrganizerEventUseCase {
                                         existingVoucher.setVariableAmount(voucherRequest.getVariableAmount());
                                         existingVoucher.setStartedAt(voucherRequest.getStartedAt());
                                         existingVoucher.setEndedAt(voucherRequest.getEndedAt());
-                                        existingVoucher.setIsNew(false);
+                                        if (voucherRequest.getId() == null) {
+                                            existingVoucher.setId(UUID.randomUUID());
+                                            existingVoucher.setCode(UUID.randomUUID().toString());
+                                        } else {
+                                            existingVoucher.setIsNew(false);
+                                        }
                                         return voucherRepository.save(existingVoucher);
                                     })
                             ).collectList();
 
-                    Mono<Integer> participantCountMono = transactionRepository.countByEventId(event.getId())
-                            .defaultIfEmpty(0);
+                    Mono<List<EventVoucher>> existingEventVouchersMono = eventVoucherRepository.findByEventId(event.getId()).collectList();
 
-                    return Mono.zip(updatedEventMono, updatedTicketsMono, updatedVouchersMono, participantCountMono)
-                            .map(tuple -> {
+                    return Mono.zip(updatedEventMono, updatedVouchersMono, existingEventVouchersMono)
+                            .flatMap(tuple -> {
                                 Event updatedEvent = tuple.getT1();
-                                List<EventTicket> updatedTickets = tuple.getT2();
-                                List<Voucher> updatedVouchers = tuple.getT3();
-                                Integer participantCount = tuple.getT4();
+                                List<Voucher> updatedVouchers = tuple.getT2();
+                                List<EventVoucher> existingEventVouchers = tuple.getT3();
 
-                                return RetrieveEventResponse.builder()
-                                        .id(updatedEvent.getId())
-                                        .name(updatedEvent.getName())
-                                        .description(updatedEvent.getDescription())
-                                        .location(updatedEvent.getLocation())
-                                        .category(updatedEvent.getCategory())
-                                        .time(updatedEvent.getTime())
-                                        .eventTickets(updatedTickets.stream()
-                                                .map(ticket -> RetrieveEventTicketResponse.builder()
-                                                        .slots(ticket.getSlots())
-                                                        .price(ticket.getPrice())
-                                                        .build())
-                                                .collect(Collectors.toList()))
-                                        .participantCount(participantCount)
-                                        .eventVouchers(updatedVouchers.stream()
-                                                .map(voucher -> RetrieveEventVoucherResponse.builder()
-                                                        .id(voucher.getId())
-                                                        .name(voucher.getName())
-                                                        .description(voucher.getDescription())
-                                                        .variableAmount(voucher.getVariableAmount())
-                                                        .startedAt(voucher.getStartedAt())
-                                                        .endedAt(voucher.getEndedAt())
-                                                        .build())
-                                                .collect(Collectors.toList()))
-                                        .build();
+                                List<UUID> updatedVoucherIds = updatedVouchers.stream()
+                                        .map(Voucher::getId)
+                                        .toList();
+
+                                List<EventVoucher> vouchersToDelete = existingEventVouchers.stream()
+                                        .filter(existingVoucher -> !updatedVoucherIds.contains(existingVoucher.getVoucherId()))
+                                        .collect(Collectors.toList());
+
+                                Flux<EventVoucher> deletionFlux = Flux.fromIterable(vouchersToDelete)
+                                        .flatMap(voucher ->
+                                            Mono.when(
+                                                            eventVoucherRepository.delete(voucher),
+                                                            voucherRepository.deleteById(voucher.getVoucherId())
+                                                    )
+                                                    .then(Mono.just(voucher))
+                                        );
+
+                                return deletionFlux.then(Mono.just(updatedEvent));
+                            })
+                            .flatMap(savedEvent -> {
+                                Mono<Integer> participantCountMono = transactionRepository.countByEventId(savedEvent.getId())
+                                        .defaultIfEmpty(0);
+
+                                return Mono.zip(updatedEventMono, updatedTicketsMono, updatedVouchersMono, participantCountMono)
+                                        .map(tuple -> {
+                                            Event updatedEvent = tuple.getT1();
+                                            List<EventTicket> updatedTickets = tuple.getT2();
+                                            List<Voucher> updatedVouchers = tuple.getT3();
+                                            Integer participantCount = tuple.getT4();
+
+                                            return RetrieveEventResponse.builder()
+                                                    .id(updatedEvent.getId())
+                                                    .name(updatedEvent.getName())
+                                                    .description(updatedEvent.getDescription())
+                                                    .location(updatedEvent.getLocation())
+                                                    .category(updatedEvent.getCategory())
+                                                    .time(updatedEvent.getTime())
+                                                    .eventTickets(updatedTickets.stream()
+                                                            .map(ticket -> RetrieveEventTicketResponse.builder()
+                                                                    .slots(ticket.getSlots())
+                                                                    .price(ticket.getPrice())
+                                                                    .build())
+                                                            .collect(Collectors.toList()))
+                                                    .participantCount(participantCount)
+                                                    .eventVouchers(updatedVouchers.stream()
+                                                            .map(voucher -> RetrieveEventVoucherResponse.builder()
+                                                                    .id(voucher.getId())
+                                                                    .name(voucher.getName())
+                                                                    .description(voucher.getDescription())
+                                                                    .variableAmount(voucher.getVariableAmount())
+                                                                    .startedAt(voucher.getStartedAt())
+                                                                    .endedAt(voucher.getEndedAt())
+                                                                    .build())
+                                                            .collect(Collectors.toList()))
+                                                    .build();
+                                        });
                             });
                 });
     }

@@ -67,7 +67,7 @@ public class OrganizerEventRest {
                 );
     }
 
-    @PostMapping
+    @PostMapping("/create")
     public Mono<ResponseEntity<ResponseBody<RetrieveEventResponse>>> createNewEvent(
             @AuthenticationPrincipal Account authenticatedAccount,
             @RequestBody CreateEventRequest request
