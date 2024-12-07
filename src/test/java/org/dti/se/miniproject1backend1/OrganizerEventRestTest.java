@@ -20,9 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class OrganizerEventRestTest extends TestConfiguration {
-
-    private final List<Event> fakeEvents = new ArrayList<>();
-
     @BeforeAll
     public void beforeAll() {
         configure();
@@ -58,12 +55,13 @@ public class OrganizerEventRestTest extends TestConfiguration {
                 .location("Test Location")
                 .price(100000.00)
                 .slots(100)
+                .time(now.plusDays(15))
                 .vouchers(vouchers)
                 .build();
 
         ResponseBody<RetrieveEventResponse> responseBody = webTestClient
                 .post()
-                .uri("/organizer/events")
+                .uri("/organizer/events/create")
                 .bodyValue(testEvent)
                 .exchange()
                 .expectStatus().isCreated()
@@ -90,7 +88,10 @@ public class OrganizerEventRestTest extends TestConfiguration {
     @Test
     @Order(2)
     public void testRetrieveMany() {
-        Event event = fakeEvents.getFirst();
+        Event event = fakeEvents.stream()
+                .filter(e -> e.getAccountId().equals(authenticatedAccount.getId()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No event found for the authenticated account"));
 
         ResponseBody<List<RetrieveEventResponse>> responseBody = webTestClient
                 .get()
@@ -113,7 +114,10 @@ public class OrganizerEventRestTest extends TestConfiguration {
     @Test
     @Order(3)
     public void testGetEventDetail() {
-        Event event = fakeEvents.getFirst();
+        Event event = fakeEvents.stream()
+                .filter(e -> e.getAccountId().equals(authenticatedAccount.getId()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No event found for the authenticated account"));
 
         ResponseBody<RetrieveEventResponse> responseBody = webTestClient
                 .get()
@@ -133,7 +137,10 @@ public class OrganizerEventRestTest extends TestConfiguration {
     @Test
     @Order(4)
     public void testUpdateEvent() {
-        Event event = fakeEvents.getFirst();
+        Event event = fakeEvents.stream()
+                .filter(e -> e.getAccountId().equals(authenticatedAccount.getId()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No event found for the authenticated account"));
 
         ResponseBody<RetrieveEventResponse> responseBodyPrepare = webTestClient
                 .get()
