@@ -3,6 +3,7 @@ package org.dti.se.miniproject1backend1.inners.usecases.profile;
 import org.dti.se.miniproject1backend1.inners.models.entities.Account;
 import org.dti.se.miniproject1backend1.inners.models.entities.Event;
 import org.dti.se.miniproject1backend1.inners.models.entities.Transaction;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.profile.CreateFeedbackRequest;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.profile.RetrieveAllFeedbackResponse;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.profile.RetrieveFeedbackResponse;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountUnAuthorizedException;
@@ -40,6 +41,21 @@ public class BasicProfileUseCase {
                 .flatMapMany(transactions -> transactions)
                 .flatMap(transaction -> fetchFeedbackResponse(claimerAccount, transaction))
                 .collectList();
+    }
+
+    public Mono<Void> createFeedback(Account claimerAccount, CreateFeedbackRequest request) {
+        return feedbackRepository.findById(request.getId())
+                .flatMap(feedback -> {
+                    if (!feedback.getAccountId().equals(claimerAccount.getId())) {
+                        return Mono.error(new AccountUnAuthorizedException());
+                    }
+                    feedback.setId(UUID.randomUUID());
+                    feedback.setTransactionId(request.getTransactionId());
+                    feedback.setAccountId(claimerAccount.getId());
+                    feedback.setRating(request.getRating());
+                    feedback.setReview(request.getReview());
+                    return feedbackRepository.save(feedback);
+                }).then();
     }
 
     public Mono<Void> deleteFeedback(Account claimerAccount, UUID feedbackId) {

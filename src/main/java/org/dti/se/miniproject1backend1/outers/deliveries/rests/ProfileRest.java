@@ -2,6 +2,7 @@ package org.dti.se.miniproject1backend1.outers.deliveries.rests;
 
 import org.dti.se.miniproject1backend1.inners.models.entities.Account;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.ResponseBody;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.profile.CreateFeedbackRequest;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.profile.RetrieveAllFeedbackResponse;
 import org.dti.se.miniproject1backend1.inners.usecases.profile.BasicProfileUseCase;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountUnAuthorizedException;
@@ -22,7 +23,6 @@ public class ProfileRest {
     BasicProfileUseCase basicProfileUseCase;
 
     @GetMapping("/feedbacks")
-    @PostMapping
     public Mono<ResponseEntity<ResponseBody<List<RetrieveAllFeedbackResponse>>>> retrieveFeedbacks(
             @AuthenticationPrincipal Account authenticatedAccount,
             @RequestParam(defaultValue = "0") Integer page,
@@ -47,8 +47,31 @@ public class ProfileRest {
                 );
     }
 
+
+    @PostMapping("/feedbacks")
+    public Mono<ResponseEntity<ResponseBody<Void>>> createFeedback(
+            @AuthenticationPrincipal Account authenticatedAccount,
+            @RequestBody CreateFeedbackRequest request
+    ) {
+        return basicProfileUseCase.createFeedback(authenticatedAccount, request)
+                .then(Mono.fromCallable(() -> ResponseBody
+                        .<Void>builder()
+                        .message("Feedback created.")
+                        .data(null)
+                        .build()
+                        .toEntity(HttpStatus.CREATED)))
+                .onErrorResume(e -> Mono
+                        .just(ResponseBody
+                                .<Void>builder()
+                                .message("Internal server error.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+                        )
+                );
+    }
+
     @DeleteMapping("/feedbacks/{id}")
-    @PostMapping
     public Mono<ResponseEntity<ResponseBody<Void>>> deleteFeedback(
             @AuthenticationPrincipal Account authenticatedAccount,
             @PathVariable UUID id
