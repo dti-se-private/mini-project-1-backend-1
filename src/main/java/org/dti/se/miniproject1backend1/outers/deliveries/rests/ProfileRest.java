@@ -3,6 +3,7 @@ package org.dti.se.miniproject1backend1.outers.deliveries.rests;
 import org.dti.se.miniproject1backend1.inners.models.entities.Account;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.ResponseBody;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.profile.CreateFeedbackRequest;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.profile.CreateFeedbackResponse;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.profile.RetrieveAllFeedbackResponse;
 import org.dti.se.miniproject1backend1.inners.usecases.profile.BasicProfileUseCase;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountUnAuthorizedException;
@@ -34,7 +35,7 @@ public class ProfileRest {
                         .message("Feedbacks retrieved.")
                         .data(feedbacks)
                         .build()
-                        .toEntity(HttpStatus.CREATED)
+                        .toEntity(HttpStatus.OK)
                 )
                 .onErrorResume(e -> Mono
                         .just(ResponseBody
@@ -49,20 +50,20 @@ public class ProfileRest {
 
 
     @PostMapping("/feedbacks")
-    public Mono<ResponseEntity<ResponseBody<Void>>> createFeedback(
+    public Mono<ResponseEntity<ResponseBody<CreateFeedbackResponse>>> createFeedback(
             @AuthenticationPrincipal Account authenticatedAccount,
             @RequestBody CreateFeedbackRequest request
     ) {
         return basicProfileUseCase.createFeedback(authenticatedAccount, request)
-                .then(Mono.fromCallable(() -> ResponseBody
-                        .<Void>builder()
+                .map(feedback -> ResponseBody
+                        .<CreateFeedbackResponse>builder()
                         .message("Feedback created.")
-                        .data(null)
+                        .data(feedback)
                         .build()
-                        .toEntity(HttpStatus.CREATED)))
+                        .toEntity(HttpStatus.CREATED))
                 .onErrorResume(e -> Mono
                         .just(ResponseBody
-                                .<Void>builder()
+                                .<CreateFeedbackResponse>builder()
                                 .message("Internal server error.")
                                 .exception(e)
                                 .build()
@@ -82,7 +83,7 @@ public class ProfileRest {
                         .message("Feedback deleted.")
                         .data(null)
                         .build()
-                        .toEntity(HttpStatus.CREATED)))
+                        .toEntity(HttpStatus.OK)))
                 .onErrorResume(AccountUnAuthorizedException.class, e -> Mono
                         .just(ResponseBody
                                 .<Void>builder()

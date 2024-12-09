@@ -2,8 +2,10 @@ package org.dti.se.miniproject1backend1.inners.usecases.profile;
 
 import org.dti.se.miniproject1backend1.inners.models.entities.Account;
 import org.dti.se.miniproject1backend1.inners.models.entities.Event;
+import org.dti.se.miniproject1backend1.inners.models.entities.Feedback;
 import org.dti.se.miniproject1backend1.inners.models.entities.Transaction;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.profile.CreateFeedbackRequest;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.profile.CreateFeedbackResponse;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.profile.RetrieveAllFeedbackResponse;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.profile.RetrieveFeedbackResponse;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountUnAuthorizedException;
@@ -33,29 +35,28 @@ public class BasicProfileUseCase {
             Account claimerAccount,
             Integer page,
             Integer size) {
-        return Mono.fromCallable(() -> transactionRepository
-                        .findByAccountId(
-                                claimerAccount.getId(),
-                                PageRequest.of(page, size)
-                        ))
-                .flatMapMany(transactions -> transactions)
+        return transactionRepository
+                .findByAccountId(claimerAccount.getId(), PageRequest.of(page, size))
                 .flatMap(transaction -> fetchFeedbackResponse(claimerAccount, transaction))
                 .collectList();
     }
 
-    public Mono<Void> createFeedback(Account claimerAccount, CreateFeedbackRequest request) {
-        return feedbackRepository.findById(request.getId())
-                .flatMap(feedback -> {
-                    if (!feedback.getAccountId().equals(claimerAccount.getId())) {
-                        return Mono.error(new AccountUnAuthorizedException());
-                    }
-                    feedback.setId(UUID.randomUUID());
-                    feedback.setTransactionId(request.getTransactionId());
-                    feedback.setAccountId(claimerAccount.getId());
-                    feedback.setRating(request.getRating());
-                    feedback.setReview(request.getReview());
-                    return feedbackRepository.save(feedback);
-                }).then();
+    public Mono<CreateFeedbackResponse> createFeedback(Account claimerAccount, CreateFeedbackRequest request) {
+        return feedbackRepository.save(Feedback.builder()
+                            .id(UUID.randomUUID())
+                            .transactionId(request.getTransactionId())
+                            .accountId(claimerAccount.getId())
+                            .rating(request.getRating())
+                            .review(request.getReview())
+                            .build())
+                .flatMap(feedback -> Mono.just(CreateFeedbackResponse
+                        .builder()
+                        .id(feedback.getId())
+                        .transactionId(feedback.getTransactionId())
+                        .rating(feedback.getRating())
+                        .review(feedback.getReview())
+                        .build())
+                );
     }
 
     public Mono<Void> deleteFeedback(Account claimerAccount, UUID feedbackId) {

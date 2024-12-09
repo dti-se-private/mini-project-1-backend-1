@@ -12,7 +12,8 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Accessors(chain = true)
-public class CreateFeedbackRequest extends Model {
+public class CreateFeedbackResponse extends Model {
+    private UUID id;
     private UUID transactionId;
     private Integer rating;
     private String review;
