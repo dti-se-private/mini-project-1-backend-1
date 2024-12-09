@@ -1,30 +1,22 @@
 package org.dti.se.miniproject1backend1.inners.usecases.events;
 
 import org.dti.se.miniproject1backend1.inners.models.entities.*;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.CreateEventRequest;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveEventResponse;
-import org.dti.se.miniproject1backend1.inners.usecases.authentications.JwtAuthenticationUseCase;
-import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountNotFoundException;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.*;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.CreateEventVoucherRequest;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountUnAuthorizedException;
+import org.dti.se.miniproject1backend1.outers.exceptions.events.EventNotFoundException;
+import org.dti.se.miniproject1backend1.outers.repositories.customs.EventCustomRepository;
 import org.dti.se.miniproject1backend1.outers.repositories.ones.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 @Service
 public class OrganizerEventUseCase {
-    @Autowired
-    JwtAuthenticationUseCase jwtAuthenticationUseCase;
-
-    @Autowired
-    AccountRepository accountRepository;
 
     @Autowired
     EventRepository eventRepository;
@@ -42,110 +34,233 @@ public class OrganizerEventUseCase {
     VoucherRepository voucherRepository;
 
     @Autowired
+    EventCustomRepository eventCustomRepository;
+    @Autowired
     private EventVoucherRepository eventVoucherRepository;
 
-    public Mono<List<RetrieveEventResponse>> retrieveEvents(String page, String size, UUID accountId) {
-        return Mono
-                .fromCallable(() -> accountRepository.findFirstById(accountId))
-                .switchIfEmpty(Mono.error(new AccountNotFoundException()))
-                .flatMap(account -> {
-                    int pageNumber = (page != null && !page.isEmpty()) ? Integer.parseInt(page) : 0;
-                    int pageSize = (size != null && !size.isEmpty()) ? Integer.parseInt(size) : 10;
-                    Pageable pageable = PageRequest.of(pageNumber, pageSize);
-
-                    return eventRepository.findByAccountId(accountId, pageable)
-                            .map(event -> RetrieveEventResponse.builder()
-                                    .id(event.getId())
-                                    .name(event.getName())
-                                    .time(event.getTime())
-                                    .build())
-                            .collectList();
-                });
+    public Mono<List<RetrieveEventResponse>> retrieveEvents(Account authenticatedAccount, Integer page, Integer size) {
+        return eventCustomRepository
+                .retrieveEventsByAccountId(authenticatedAccount.getId(), page, size)
+                .collectList();
     }
 
-    public Mono<RetrieveEventResponse> retrieveEventById(Account authenticatedAccount, UUID eventID) {
-        return basicEventUseCase.retrieveEventById(eventID)
-                .flatMap(event -> {
-                    if (event.getOrganizerAccount().getId().equals(authenticatedAccount.getId())) {
-                        return Mono.just(event);
-                    } else {
-                        return Mono.error(new AccountUnAuthorizedException());
-                    }
-                });
+    public Mono<RetrieveEventResponse> retrieveEventById(Account authenticatedAccount, UUID eventId) {
+        return eventCustomRepository
+                .retrieveEventById(eventId)
+                .filter(event -> event.getOrganizerAccount().getId().equals(authenticatedAccount.getId()))
+                .switchIfEmpty(Mono.error(new AccountUnAuthorizedException()));
     }
 
-    public Mono<RetrieveEventResponse> saveOne(CreateEventRequest request, UUID accountId) {
+    public Mono<RetrieveEventResponse> createEvent(Account authenticatedAccount, CreateEventRequest request) {
         return Mono
-                .fromCallable(() -> accountRepository.findFirstById(accountId))
-                .switchIfEmpty(Mono.error(new AccountNotFoundException()))
-                .flatMap(account -> {
-                    Event newEvent = Event.builder()
+                .fromCallable(() -> {
+                    Event newEvent = Event
+                            .builder()
                             .id(UUID.randomUUID())
-                            .accountId(accountId)
+                            .accountId(authenticatedAccount.getId())
                             .name(request.getName())
                             .description(request.getDescription())
                             .location(request.getLocation())
                             .category(request.getCategory())
                             .time(request.getTime())
-                            .bannerImageUrl(null)
+                            .bannerImageUrl(request.getBannerImageUrl())
                             .build();
 
-                    Mono<Event> savedEvent = eventRepository.save(newEvent);
+                    List<EventTicket> newEventTickets = new ArrayList<>();
+                    List<EventTicketField> newEventTicketFields = new ArrayList<>();
 
-                    Mono<EventTicket> newTicket = savedEvent.flatMap(
-                            event -> Mono.just(EventTicket.builder()
-                                    .id(UUID.randomUUID())
-                                    .eventId(event.getId())
-                                    .name(null)
-                                    .description(null)
-                                    .slots(request.getSlots())
-                                    .price(request.getPrice())
-                                    .build()
-                            ));
-
-                    Mono<EventTicket> savedTicket = newTicket.flatMap(eventTicketRepository::save);
-
-                    savedTicket.flatMapMany(ticket -> {
-                        return Flux.just("name", "phone", "email", "dob")
-                                .map(key -> EventTicketField.builder()
-                                        .id(UUID.randomUUID())
-                                        .eventTicketId(ticket.getId())
-                                        .key(key)
-                                        .build())
-                                .flatMap(eventTicketFieldRepository::save);
-                    });
-
-                    Flux<Voucher> savedVouchers = Flux.fromStream(Arrays.stream(request.getVouchers())
-                            .map(voucher -> Voucher.builder()
-                                    .id(UUID.randomUUID())
-                                    .code(UUID.randomUUID().toString())
-                                    .name(voucher.getName())
-                                    .description(voucher.getDescription())
-                                    .variableAmount(voucher.getVariableAmount())
-                                    .startedAt(voucher.getStartedAt())
-                                    .endedAt(voucher.getEndedAt())
-                                    .build()
-                            ).map(voucherRepository::save)
-                    ).flatMap(voucherMono -> voucherMono);
-
-                    savedVouchers.flatMap(savedVoucher -> {
-                        EventVoucher eventVoucher = EventVoucher.builder()
+                    for (CreateEventTicketRequest eventTicket : request.getEventTickets()) {
+                        EventTicket newEventTicket = EventTicket
+                                .builder()
                                 .id(UUID.randomUUID())
                                 .eventId(newEvent.getId())
-                                .voucherId(savedVoucher.getId())
+                                .name(eventTicket.getName())
+                                .description(eventTicket.getDescription())
+                                .slots(eventTicket.getSlots())
+                                .price(eventTicket.getPrice())
                                 .build();
-                        return eventVoucherRepository.save(eventVoucher);
-                    }).collectList();
+                        newEventTickets.add(newEventTicket);
 
-                    return basicEventUseCase.retrieveEventById(newEvent.getId());
-                });
+                        for (String eventTicketField : eventTicket.getFields()) {
+                            EventTicketField newEventTicketField = EventTicketField
+                                    .builder()
+                                    .id(UUID.randomUUID())
+                                    .eventTicketId(newEventTicket.getId())
+                                    .key(eventTicketField)
+                                    .build();
+                            newEventTicketFields.add(newEventTicketField);
+                        }
+                    }
+
+                    List<Voucher> newVouchers = new ArrayList<>();
+                    List<EventVoucher> newEventVouchers = new ArrayList<>();
+
+                    for (CreateEventVoucherRequest eventVoucher : request.getEventVouchers()) {
+                        Voucher newVoucher = Voucher
+                                .builder()
+                                .id(UUID.randomUUID())
+                                .name(eventVoucher.getName())
+                                .description(eventVoucher.getDescription())
+                                .variableAmount(eventVoucher.getVariableAmount())
+                                .startedAt(eventVoucher.getStartedAt())
+                                .endedAt(eventVoucher.getEndedAt())
+                                .build();
+                        newVouchers.add(newVoucher);
+
+                        EventVoucher newEventVoucher = EventVoucher
+                                .builder()
+                                .id(UUID.randomUUID())
+                                .eventId(newEvent.getId())
+                                .voucherId(newVoucher.getId())
+                                .build();
+                        newEventVouchers.add(newEventVoucher);
+                    }
+
+                    Mono<Event> savedEvent = eventRepository.save(newEvent);
+                    Mono<List<EventTicket>> savedEventTickets = eventTicketRepository.saveAll(newEventTickets).collectList();
+                    Mono<List<EventTicketField>> savedEventTicketFields = eventTicketFieldRepository.saveAll(newEventTicketFields).collectList();
+                    Mono<List<Voucher>> savedVouchers = voucherRepository.saveAll(newVouchers).collectList();
+                    Mono<List<EventVoucher>> savedEventVouchers = eventVoucherRepository.saveAll(newEventVouchers).collectList();
+
+                    return Mono.zip(savedEvent, savedEventTickets, savedEventTicketFields, savedVouchers, savedEventVouchers);
+                })
+                .flatMap(value -> value)
+                .flatMap(tuple -> basicEventUseCase
+                        .retrieveEventById(tuple.getT1().getId())
+                );
     }
 
-    public Mono<RetrieveEventResponse> updateOne(RetrieveEventResponse request) {
-        //check if the organizer is the owner of the event
-        //check if the event exist
-        //update the event
-        //return event detail from getEventById
-        return null;
+    public Mono<RetrieveEventResponse> patchEvent(
+            Account authenticatedAccount,
+            UUID eventId,
+            PatchEventRequest request
+    ) {
+        return eventRepository
+                .findFirstById(eventId)
+                .switchIfEmpty(Mono.error(new EventNotFoundException()))
+                .filter(event -> event.getAccountId().equals(authenticatedAccount.getId()))
+                .switchIfEmpty(Mono.error(new AccountUnAuthorizedException()))
+                .flatMap(event -> {
+                    Mono<Event> patchedEvent = patchEventById(eventId, request);
+                    Mono<List<EventTicket>> patchedTickets = patchEventTickets(
+                            request
+                                    .getEventTickets()
+                                    .stream()
+                                    .map(PatchEventTicketRequest::getId)
+                                    .toList(),
+                            request
+                                    .getEventTickets()
+                    );
+                    Mono<List<EventTicketField>> patchedTicketFields = patchEventTicketFields(
+                            request
+                                    .getEventTickets()
+                                    .stream()
+                                    .flatMap(eventTicket -> eventTicket
+                                            .getFields()
+                                            .stream()
+                                            .map(PatchEventTicketFieldRequest::getId)
+                                    )
+                                    .toList(),
+                            request
+                                    .getEventTickets()
+                                    .stream()
+                                    .flatMap(eventTicket -> eventTicket
+                                            .getFields()
+                                            .stream()
+                                    )
+                                    .toList()
+                    );
+
+                    Mono<List<Voucher>> patchedVouchers = patchVouchers(
+                            request.getEventVouchers()
+                                    .stream()
+                                    .map(PatchEventVoucherRequest::getId)
+                                    .toList(),
+                            request.getEventVouchers()
+                    );
+
+                    return Mono.zip(patchedEvent, patchedTickets, patchedTicketFields, patchedVouchers);
+                })
+                .flatMap(tuple -> basicEventUseCase
+                        .retrieveEventById(eventId)
+                );
     }
+
+    private Mono<Event> patchEventById(UUID eventId, PatchEventRequest patcherEvent) {
+        return eventRepository
+                .findFirstById(eventId)
+                .switchIfEmpty(Mono.error(new EventNotFoundException()))
+                .map(event -> event
+                        .setIsNew(false)
+                        .setName(patcherEvent.getName())
+                        .setDescription(patcherEvent.getDescription())
+                        .setLocation(patcherEvent.getLocation())
+                        .setCategory(patcherEvent.getCategory())
+                        .setTime(patcherEvent.getTime())
+                        .setBannerImageUrl(patcherEvent.getBannerImageUrl())
+                )
+                .flatMap(eventRepository::save);
+    }
+
+    private Mono<List<EventTicket>> patchEventTickets(List<UUID> eventTicketIds, List<PatchEventTicketRequest> patcherEventTickets) {
+        return eventTicketRepository
+                .findAllById(eventTicketIds)
+                .map(eventTicket -> {
+                    PatchEventTicketRequest patcherEventTicket = patcherEventTickets
+                            .stream()
+                            .filter(patcherTicket -> patcherTicket.getId().equals(eventTicket.getId()))
+                            .findFirst()
+                            .orElseThrow();
+                    return eventTicket
+                            .setIsNew(false)
+                            .setName(patcherEventTicket.getName())
+                            .setDescription(patcherEventTicket.getDescription())
+                            .setSlots(patcherEventTicket.getSlots())
+                            .setPrice(patcherEventTicket.getPrice());
+                })
+                .flatMap(eventTicketRepository::save)
+                .collectList();
+    }
+
+    private Mono<List<EventTicketField>> patchEventTicketFields(List<UUID> eventTicketFieldIds, List<PatchEventTicketFieldRequest> patcherEventTicketFields) {
+        return eventTicketFieldRepository
+                .findAllById(eventTicketFieldIds)
+                .map(eventTicketField -> {
+                    PatchEventTicketFieldRequest patcherEventTicketField = patcherEventTicketFields
+                            .stream()
+                            .filter(patcherField -> patcherField
+                                    .getId()
+                                    .equals(eventTicketField.getId())
+                            )
+                            .findFirst()
+                            .orElseThrow();
+                    return eventTicketField
+                            .setIsNew(false)
+                            .setKey(patcherEventTicketField.getKey());
+                })
+                .flatMap(eventTicketFieldRepository::save)
+                .collectList();
+    }
+
+    private Mono<List<Voucher>> patchVouchers(List<UUID> voucherIds, List<PatchEventVoucherRequest> patcherEventVouchers) {
+        return voucherRepository
+                .findAllById(voucherIds)
+                .map(voucher -> {
+                    PatchEventVoucherRequest patcherEventVoucher = patcherEventVouchers
+                            .stream()
+                            .filter(patcherVoucher -> patcherVoucher.getId().equals(voucher.getId()))
+                            .findFirst()
+                            .orElseThrow();
+                    return voucher
+                            .setIsNew(false)
+                            .setName(patcherEventVoucher.getName())
+                            .setDescription(patcherEventVoucher.getDescription())
+                            .setVariableAmount(patcherEventVoucher.getVariableAmount())
+                            .setStartedAt(patcherEventVoucher.getStartedAt())
+                            .setEndedAt(patcherEventVoucher.getEndedAt());
+                })
+                .flatMap(voucherRepository::save)
+                .collectList();
+    }
+
 }

@@ -1,4 +1,4 @@
-package org.dti.se.miniproject1backend1.inners.models.valueobjects.vouchers;
+package org.dti.se.miniproject1backend1.inners.models.valueobjects.events;
 
 import lombok.*;
 import lombok.experimental.Accessors;
@@ -12,8 +12,7 @@ import java.time.OffsetDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @Accessors(chain = true)
-public class CreateVoucherRequest extends Model {
-    private String code;
+public class CreateEventVoucherRequest extends Model {
     private String name;
     private String description;
     private Double variableAmount;
