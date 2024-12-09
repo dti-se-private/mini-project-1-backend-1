@@ -3,19 +3,18 @@ package org.dti.se.miniproject1backend1;
 import org.dti.se.miniproject1backend1.inners.models.entities.Event;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.ResponseBody;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.CreateEventRequest;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.CreateEventTicketRequest;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.CreateEventVoucherRequest;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveEventResponse;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.vouchers.CreateVoucherRequest;
 import org.junit.jupiter.api.*;
 import org.springframework.core.ParameterizedTypeReference;
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
 
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import java.util.Objects;
+import java.util.UUID;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -24,7 +23,7 @@ public class OrganizerEventRestTest extends TestConfiguration {
     public void beforeAll() {
         configure();
         populate();
-        auth();
+        auth(fakeAccounts.getFirst());
     }
 
     @AfterAll
@@ -34,140 +33,164 @@ public class OrganizerEventRestTest extends TestConfiguration {
     }
 
     @Test
-    @Order(1)
-    public void testCreateNewEvent() {
+    public void testCreateEvent() {
         OffsetDateTime now = OffsetDateTime.now().truncatedTo(ChronoUnit.MICROS);
 
-        List<CreateVoucherRequest> vouchers = new ArrayList<>();
-        CreateVoucherRequest testVoucher = CreateVoucherRequest.builder()
-                .name("Test Voucher")
-                .description("Description for Test Voucher")
-                .variableAmount(7.00)
-                .startedAt(now)
-                .endedAt(now.plusDays(7))
-                .build();
-        vouchers.add(testVoucher);
+        List<CreateEventVoucherRequest> eventVouchers = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            eventVouchers.add(
+                    CreateEventVoucherRequest
+                            .builder()
+                            .name(String.format("name-%s", UUID.randomUUID()))
+                            .description(String.format("description-%s", UUID.randomUUID()))
+                            .variableAmount(10.0)
+                            .startedAt(now)
+                            .endedAt(now.plusDays(1))
+                            .build()
+            );
+        }
 
-        CreateEventRequest testEvent = CreateEventRequest.builder()
-                .name("Test Event")
-                .description("Description for Test Event")
-                .category("Test Category")
-                .location("Test Location")
-                .price(100000.00)
+
+        List<CreateEventTicketRequest> eventTickets = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            eventTickets.add(
+                    CreateEventTicketRequest
+                            .builder()
+                            .name(String.format("name-%s", UUID.randomUUID()))
+                            .description(String.format("description-%s", UUID.randomUUID()))
+                            .price(10.0)
+                            .slots(100)
+                            .fields(List.of("name", "email", "phone", "dob"))
+                            .build()
+            );
+        }
+
+
+        CreateEventRequest createEventRequest = CreateEventRequest
+                .builder()
+                .name(String.format("name-%s", UUID.randomUUID()))
+                .description(String.format("description-%s", UUID.randomUUID()))
+                .location(String.format("location-%s", UUID.randomUUID()))
+                .category(String.format("category-%s", UUID.randomUUID()))
+                .time(now.plusDays(1))
+                .price(10.0)
                 .slots(100)
-                .time(now.plusDays(15))
-                .vouchers(vouchers)
+                .bannerImageUrl(String.format("bannerImageUrl-%s", UUID.randomUUID()))
+                .eventVouchers(eventVouchers)
+                .eventTickets(eventTickets)
                 .build();
 
-        ResponseBody<RetrieveEventResponse> responseBody = webTestClient
+        webTestClient
                 .post()
-                .uri("/organizer/events/create")
-                .bodyValue(testEvent)
+                .uri("/organizer/events")
+                .bodyValue(createEventRequest)
                 .exchange()
-                .expectStatus().isCreated()
-                .expectBody(new ParameterizedTypeReference<ResponseBody<RetrieveEventResponse>>() {})
-                .returnResult()
-                .getResponseBody();
-
-        assertThat(responseBody).isNotNull();
-        StepVerifier.create(Mono.just(responseBody))
-                .assertNext(body -> {
-                    assertThat(body.getData().getName()).isEqualTo(testEvent.getName());
-                    assertThat(body.getData().getLocation()).isEqualTo(testEvent.getLocation());
+                .expectStatus()
+                .isCreated()
+                .expectBody(new ParameterizedTypeReference<ResponseBody<RetrieveEventResponse>>() {
                 })
-                .verifyComplete();
-
-        Event fakeEvent = Event.builder()
-                .id(responseBody.getData().getId())
-                .accountId(responseBody.getData().getOrganizerAccount().getId())
-                .name(responseBody.getData().getName())
-                .build();
-        fakeEvents.add(fakeEvent);
+                .value(body -> {
+                    assert body != null;
+                    assert body.getData() != null;
+                    assert body.getData().getId() != null;
+                    assert body.getData().getName().equals(createEventRequest.getName());
+                    assert body.getData().getDescription().equals(createEventRequest.getDescription());
+                    assert body.getData().getLocation().equals(createEventRequest.getLocation());
+                    assert body.getData().getCategory().equals(createEventRequest.getCategory());
+                    assert body.getData().getTime().equals(createEventRequest.getTime());
+                    assert body.getData().getBannerImageUrl().equals(createEventRequest.getBannerImageUrl());
+                    assert body.getData().getEventVouchers().size() == createEventRequest.getEventVouchers().size();
+                    body.getData().getEventVouchers().forEach(voucher -> {
+                        assert createEventRequest
+                                .getEventVouchers()
+                                .stream()
+                                .anyMatch(voucherRequest -> voucherRequest.getName().equals(voucher.getName()));
+                    });
+                });
     }
 
     @Test
-    @Order(2)
-    public void testRetrieveMany() {
-        Event event = fakeEvents.stream()
+    public void testRetrieveEvents() {
+        List<Event> accountEvents = fakeEvents
+                .stream()
                 .filter(e -> e.getAccountId().equals(authenticatedAccount.getId()))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("No event found for the authenticated account"));
+                .toList();
 
-        ResponseBody<List<RetrieveEventResponse>> responseBody = webTestClient
+        webTestClient
                 .get()
-                .uri("/organizer/events?page=0&size=10")
+                .uri("/organizer/events?page=0&size={size}", accountEvents.size())
                 .exchange()
                 .expectStatus()
                 .isOk()
-                .expectBody(new ParameterizedTypeReference<ResponseBody<List<RetrieveEventResponse>>>() {})
-                .returnResult()
-                .getResponseBody();
-
-        assertThat(responseBody).isNotNull();
-        StepVerifier.create(Mono.just(responseBody))
-                .assertNext(body -> assertThat(body.getData())
-                        .extracting(RetrieveEventResponse::getName)
-                        .contains(event.getName()))
-                .verifyComplete();
+                .expectBody(new ParameterizedTypeReference<ResponseBody<List<RetrieveEventResponse>>>() {
+                })
+                .value(body -> {
+                    assert body != null;
+                    assert body.getData() != null;
+                    assert body.getData().size() == accountEvents.size();
+                    body.getData().forEach(data -> {
+                        assert accountEvents
+                                .stream()
+                                .anyMatch(event -> Objects.equals(event.getId(), data.getId()));
+                    });
+                });
     }
 
     @Test
-    @Order(3)
-    public void testGetEventDetail() {
-        Event event = fakeEvents.stream()
+    public void testRetrieveEvent() {
+        Event accountEvent = fakeEvents
+                .stream()
                 .filter(e -> e.getAccountId().equals(authenticatedAccount.getId()))
                 .findFirst()
-                .orElseThrow(() -> new IllegalStateException("No event found for the authenticated account"));
+                .orElseThrow();
 
-        ResponseBody<RetrieveEventResponse> responseBody = webTestClient
+        webTestClient
                 .get()
-                .uri("/organizer/events/{id}", event.getId())
+                .uri("/organizer/events/{id}", accountEvent.getId())
                 .exchange()
-                .expectStatus().isOk()
-                .expectBody(new ParameterizedTypeReference<ResponseBody<RetrieveEventResponse>>() {})
-                .returnResult()
-                .getResponseBody();
-
-        assertThat(responseBody).isNotNull();
-        StepVerifier.create(Mono.just(responseBody))
-                .assertNext(body -> assertThat(body.getData().getName()).isEqualTo(event.getName()))
-                .verifyComplete();
+                .expectStatus()
+                .isOk()
+                .expectBody(new ParameterizedTypeReference<ResponseBody<RetrieveEventResponse>>() {
+                })
+                .value(body -> {
+                    assert body != null;
+                    assert body.getData() != null;
+                    assert body.getData().getId().equals(accountEvent.getId());
+                    assert body.getData().getName().equals(accountEvent.getName());
+                    assert body.getData().getDescription().equals(accountEvent.getDescription());
+                    assert body.getData().getLocation().equals(accountEvent.getLocation());
+                    assert body.getData().getCategory().equals(accountEvent.getCategory());
+                    assert body.getData().getTime().equals(accountEvent.getTime());
+                    assert body.getData().getBannerImageUrl().equals(accountEvent.getBannerImageUrl());
+                });
     }
 
     @Test
-    @Order(4)
-    public void testUpdateEvent() {
-        Event event = fakeEvents.stream()
+    public void testPatchEvent() {
+        Event accountEvent = fakeEvents
+                .stream()
                 .filter(e -> e.getAccountId().equals(authenticatedAccount.getId()))
                 .findFirst()
-                .orElseThrow(() -> new IllegalStateException("No event found for the authenticated account"));
+                .orElseThrow();
 
-        ResponseBody<RetrieveEventResponse> responseBodyPrepare = webTestClient
+        webTestClient
                 .get()
-                .uri("/organizer/events/{id}", event.getId())
+                .uri("/organizer/events/{id}", accountEvent.getId())
                 .exchange()
-                .expectStatus().isOk()
-                .expectBody(new ParameterizedTypeReference<ResponseBody<RetrieveEventResponse>>() {})
-                .returnResult()
-                .getResponseBody();
-
-        assertThat(responseBodyPrepare).isNotNull();
-        RetrieveEventResponse eventResponse = responseBodyPrepare.getData();
-        eventResponse.setName("Updated Test Event");
-
-        ResponseBody<RetrieveEventResponse> responseBody = webTestClient
-                .patch()
-                .uri("/organizer/events/{id}", event.getId())
-                .bodyValue(eventResponse)
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(new ParameterizedTypeReference<ResponseBody<RetrieveEventResponse>>() {})
-                .returnResult()
-                .getResponseBody();
-
-        assertThat(responseBody).isNotNull();
-        StepVerifier.create(Mono.just(responseBody))
-                .assertNext(body -> assertThat(body.getData().getName()).isEqualTo("Updated Test Event"))
-                .verifyComplete();
+                .expectStatus()
+                .isOk()
+                .expectBody(new ParameterizedTypeReference<ResponseBody<RetrieveEventResponse>>() {
+                })
+                .value(body -> {
+                    assert body != null;
+                    assert body.getData() != null;
+                    assert body.getData().getId().equals(accountEvent.getId());
+                    assert body.getData().getName().equals(accountEvent.getName());
+                    assert body.getData().getDescription().equals(accountEvent.getDescription());
+                    assert body.getData().getLocation().equals(accountEvent.getLocation());
+                    assert body.getData().getCategory().equals(accountEvent.getCategory());
+                    assert body.getData().getTime().equals(accountEvent.getTime());
+                    assert body.getData().getBannerImageUrl().equals(accountEvent.getBannerImageUrl());
+                });
     }
 }
