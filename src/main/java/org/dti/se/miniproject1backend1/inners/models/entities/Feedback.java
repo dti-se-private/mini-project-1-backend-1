@@ -11,7 +11,6 @@ import org.springframework.data.relational.core.mapping.Table;
 
 import java.util.UUID;
 
-
 @Data
 @EqualsAndHashCode(callSuper = true)
 @Builder
