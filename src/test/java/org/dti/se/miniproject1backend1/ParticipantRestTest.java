@@ -46,7 +46,7 @@ public class ParticipantRestTest extends TestConfiguration {
 
         webTestClient
                 .post()
-                .uri("/profile/feedbacks")
+                .uri("/participant/feedbacks")
                 .bodyValue(createFeedbackRequest)
                 .exchange()
                 .expectStatus()
@@ -77,7 +77,7 @@ public class ParticipantRestTest extends TestConfiguration {
 
         webTestClient
                 .get()
-                .uri("/profile/feedbacks?page=0&size=10")
+                .uri("/participant/feedbacks?page=0&size=10")
                 .exchange()
                 .expectStatus()
                 .isOk()
@@ -103,7 +103,7 @@ public class ParticipantRestTest extends TestConfiguration {
 
         webTestClient
                 .delete()
-                .uri("/profile/feedbacks/{id}", feedback != null ? feedback.getId() : UUID.randomUUID())
+                .uri("/participant/feedbacks/{id}", feedback != null ? feedback.getId() : UUID.randomUUID())
                 .exchange()
                 .expectStatus()
                 .isOk();
