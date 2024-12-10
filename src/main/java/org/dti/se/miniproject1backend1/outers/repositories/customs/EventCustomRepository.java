@@ -113,6 +113,50 @@ public class EventCustomRepository {
                 .single();
     }
 
+
+    public Flux<RetrieveEventResponse> retrieveEventsByAccountId(UUID accountId, Integer page, Integer size) {
+        return oneTemplate
+                .getDatabaseClient()
+                .sql("""
+                        SELECT event.*
+                        FROM event
+                        WHERE event.account_id = :accountId
+                        LIMIT :limit
+                        OFFSET :offset
+                        """)
+                .bind("accountId", accountId)
+                .bind("limit", size)
+                .bind("offset", page * size)
+                .map((row, rowMetadata) -> RetrieveEventResponse
+                        .builder()
+                        .id(row.get("id", UUID.class))
+                        .name(row.get("name", String.class))
+                        .description(row.get("description", String.class))
+                        .category(row.get("category", String.class))
+                        .time(row.get("time", OffsetDateTime.class))
+                        .location(row.get("location", String.class))
+                        .bannerImageUrl(row.get("banner_image_url", String.class))
+                        .eventTickets(new ArrayList<>())
+                        .eventVouchers(new ArrayList<>())
+                        .build()
+                )
+                .all()
+                .flatMap(event -> retrieveOrganizerAccountsByEventIds(List.of(event.getId()))
+                        .map(event::setOrganizerAccount)
+                )
+                .flatMap(event -> retrieveEventTicketsByEventIds(List.of(event.getId()))
+                        .collectList()
+                        .map(event::setEventTickets)
+                )
+                .flatMap(event -> retrieveEventVouchersByEventIds(List.of(event.getId()))
+                        .collectList()
+                        .map(event::setEventVouchers)
+                )
+                .flatMap(event -> retrieveEventParticipantCountByEventId(event.getId())
+                        .map(event::setParticipantCount)
+                );
+    }
+
     public Flux<RetrieveOrganizerAccountResponse> retrieveOrganizerAccountsByEventIds(List<UUID> eventIds) {
         return oneTemplate
                 .getDatabaseClient()
