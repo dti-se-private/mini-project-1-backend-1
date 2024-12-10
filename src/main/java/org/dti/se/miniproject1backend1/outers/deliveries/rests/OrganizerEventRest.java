@@ -143,6 +143,15 @@ public class OrganizerEventRest {
                         .build()
                         .toEntity(HttpStatus.OK)
                 )
+                .onErrorResume(VoucherCodeExistsException.class, e -> Mono
+                        .just(ResponseBody
+                                .<RetrieveEventResponse>builder()
+                                .message("Voucher code exists.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.CONFLICT)
+                        )
+                )
                 .onErrorResume(e -> Mono
                         .just(ResponseBody
                                 .<RetrieveEventResponse>builder()

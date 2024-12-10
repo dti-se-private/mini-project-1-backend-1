@@ -177,18 +177,20 @@ public class OrganizerEventUseCase {
                     );
 
                     Mono<List<Voucher>> patchedVouchers = patchVouchers(
-                            request.getEventVouchers()
+                            request
+                                    .getEventVouchers()
                                     .stream()
                                     .filter(voucher -> voucher.getId() != null)
                                     .map(PatchEventVoucherRequest::getId)
                                     .toList(),
-                            request.getEventVouchers()
-
+                            request
+                                    .getEventVouchers()
                     );
 
                     Mono<List<Voucher>> createdVouchers = createVouchers(
                             eventId,
-                            request.getEventVouchers()
+                            request
+                                    .getEventVouchers()
                                     .stream()
                                     .filter(voucher -> voucher.getId() == null)
                                     .toList()
@@ -269,13 +271,18 @@ public class OrganizerEventUseCase {
                     return voucher
                             .setIsNew(false)
                             .setName(patcherEventVoucher.getName())
+                            .setCode(patcherEventVoucher.getCode())
                             .setDescription(patcherEventVoucher.getDescription())
                             .setVariableAmount(patcherEventVoucher.getVariableAmount())
                             .setStartedAt(patcherEventVoucher.getStartedAt())
                             .setEndedAt(patcherEventVoucher.getEndedAt());
                 })
-                .flatMap(voucherRepository::save)
-                .collectList();
+                .collectList()
+                .flatMap(vouchers -> voucherRepository
+                        .saveAll(vouchers)
+                        .collectList()
+                )
+                .onErrorResume(DuplicateKeyException.class, e -> Mono.error(new VoucherCodeExistsException()));
     }
 
     private Mono<List<Voucher>> createVouchers(UUID eventId, List<PatchEventVoucherRequest> creatorEventVouchers) {
@@ -295,6 +302,7 @@ public class OrganizerEventUseCase {
                         )
                         .toList()
                 )
+                .onErrorResume(DuplicateKeyException.class, e -> Mono.error(new VoucherCodeExistsException()))
                 .collectList()
                 .flatMap(vouchers -> eventVoucherRepository
                         .saveAll(vouchers
