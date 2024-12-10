@@ -8,6 +8,7 @@ import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.Retriev
 import org.dti.se.miniproject1backend1.inners.usecases.events.OrganizerEventUseCase;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountNotFoundException;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountUnAuthorizedException;
+import org.dti.se.miniproject1backend1.outers.exceptions.events.VoucherCodeExistsException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,16 +39,16 @@ public class OrganizerEventRest {
                         .data(eventList)
                         .build()
                         .toEntity(HttpStatus.OK)
+                )
+                .onErrorResume(e -> Mono
+                        .just(ResponseBody
+                                .<List<RetrieveEventResponse>>builder()
+                                .message("Internal server error.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+                        )
                 );
-//                .onErrorResume(e -> Mono
-//                        .just(ResponseBody
-//                                .<List<RetrieveEventResponse>>builder()
-//                                .message("Internal server error.")
-//                                .exception(e)
-//                                .build()
-//                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
-//                        )
-//                );
     }
 
     @GetMapping("/{id}")
@@ -72,16 +73,16 @@ public class OrganizerEventRest {
                                 .build()
                                 .toEntity(HttpStatus.UNAUTHORIZED)
                         )
+                )
+                .onErrorResume(e -> Mono
+                        .just(ResponseBody
+                                .<RetrieveEventResponse>builder()
+                                .message("Internal server error.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+                        )
                 );
-//                .onErrorResume(e -> Mono
-//                        .just(ResponseBody
-//                                .<RetrieveEventResponse>builder()
-//                                .message("Internal server error.")
-//                                .exception(e)
-//                                .build()
-//                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
-//                        )
-//                );
     }
 
     @PostMapping("")
@@ -98,6 +99,15 @@ public class OrganizerEventRest {
                         .build()
                         .toEntity(HttpStatus.CREATED)
                 )
+                .onErrorResume(VoucherCodeExistsException.class, e -> Mono
+                        .just(ResponseBody
+                                .<RetrieveEventResponse>builder()
+                                .message("Voucher code exists.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.CONFLICT)
+                        )
+                )
                 .onErrorResume(AccountNotFoundException.class, e -> Mono
                         .just(ResponseBody
                                 .<RetrieveEventResponse>builder()
@@ -106,16 +116,16 @@ public class OrganizerEventRest {
                                 .build()
                                 .toEntity(HttpStatus.NOT_FOUND)
                         )
+                )
+                .onErrorResume(e -> Mono
+                        .just(ResponseBody
+                                .<RetrieveEventResponse>builder()
+                                .message("Internal server error.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+                        )
                 );
-//                .onErrorResume(e -> Mono
-//                        .just(ResponseBody
-//                                .<RetrieveEventResponse>builder()
-//                                .message("Internal server error.")
-//                                .exception(e)
-//                                .build()
-//                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
-//                        )
-//                );
     }
 
     @PatchMapping("/{id}")
@@ -132,15 +142,24 @@ public class OrganizerEventRest {
                         .data(event)
                         .build()
                         .toEntity(HttpStatus.OK)
+                )
+                .onErrorResume(VoucherCodeExistsException.class, e -> Mono
+                        .just(ResponseBody
+                                .<RetrieveEventResponse>builder()
+                                .message("Voucher code exists.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.CONFLICT)
+                        )
+                )
+                .onErrorResume(e -> Mono
+                        .just(ResponseBody
+                                .<RetrieveEventResponse>builder()
+                                .message("Internal server error.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+                        )
                 );
-//                .onErrorResume(e -> Mono
-//                        .just(ResponseBody
-//                                .<RetrieveEventResponse>builder()
-//                                .message("Internal server error.")
-//                                .exception(e)
-//                                .build()
-//                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
-//                        )
-//                );
     }
 }

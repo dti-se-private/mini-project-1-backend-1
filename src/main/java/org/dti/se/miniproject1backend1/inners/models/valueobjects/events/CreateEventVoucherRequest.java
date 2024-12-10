@@ -15,6 +15,7 @@ import java.time.OffsetDateTime;
 public class CreateEventVoucherRequest extends Model {
     private String name;
     private String description;
+    private String code;
     private Double variableAmount;
     private OffsetDateTime startedAt;
     private OffsetDateTime endedAt;
