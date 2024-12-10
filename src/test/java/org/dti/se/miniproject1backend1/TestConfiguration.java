@@ -208,15 +208,6 @@ public class TestConfiguration {
                         .build();
                 fakeTransactions.add(transaction);
 
-                Transaction transactionForEmptyFeedback = Transaction
-                        .builder()
-                        .id(UUID.randomUUID())
-                        .accountId(account.getId())
-                        .eventId(event.getId())
-                        .time(now)
-                        .build();
-                fakeTransactions.add(transactionForEmptyFeedback);
-
                 for (EventTicketField eventTicketField : fakeEventTicketFields) {
                     if (eventTicketField.getEventTicketId().equals(fakeEventTickets.stream().filter(et -> et.getEventId().equals(event.getId())).findFirst().get().getId())) {
                         TransactionTicketField transactionTicketField = TransactionTicketField

@@ -72,8 +72,11 @@ public class BasicProfileUseCase {
     }
 
     private Mono<RetrieveAllFeedbackResponse> fetchFeedbackResponse(Account claimerAccount, Transaction transaction) {
-        return Mono.zip(eventRepository.findById(transaction.getEventId()), checkIfReviewed(claimerAccount, transaction))
-                .map(tuple -> mapToFeedbackResponse(transaction, tuple.getT1(), tuple.getT2()));
+        return Mono.zip(
+                eventRepository.findById(transaction.getEventId()),
+                checkIfReviewed(claimerAccount, transaction)
+                        .defaultIfEmpty(RetrieveFeedbackResponse.builder().build())
+        ).map(tuple -> mapToFeedbackResponse(transaction, tuple.getT1(), tuple.getT2()));
     }
 
     private Mono<RetrieveFeedbackResponse> checkIfReviewed(Account claimerAccount, Transaction transaction) {
