@@ -8,6 +8,7 @@ import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.Retriev
 import org.dti.se.miniproject1backend1.inners.usecases.events.OrganizerEventUseCase;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountNotFoundException;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountUnAuthorizedException;
+import org.dti.se.miniproject1backend1.outers.exceptions.events.VoucherCodeExistsException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -97,6 +98,15 @@ public class OrganizerEventRest {
                         .data(event)
                         .build()
                         .toEntity(HttpStatus.CREATED)
+                )
+                .onErrorResume(VoucherCodeExistsException.class, e -> Mono
+                        .just(ResponseBody
+                                .<RetrieveEventResponse>builder()
+                                .message("Voucher code exists.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.CONFLICT)
+                        )
                 )
                 .onErrorResume(AccountNotFoundException.class, e -> Mono
                         .just(ResponseBody

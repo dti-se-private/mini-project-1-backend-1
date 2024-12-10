@@ -2,12 +2,13 @@ package org.dti.se.miniproject1backend1.inners.usecases.events;
 
 import org.dti.se.miniproject1backend1.inners.models.entities.*;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.*;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.CreateEventVoucherRequest;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountUnAuthorizedException;
 import org.dti.se.miniproject1backend1.outers.exceptions.events.EventNotFoundException;
+import org.dti.se.miniproject1backend1.outers.exceptions.events.VoucherCodeExistsException;
 import org.dti.se.miniproject1backend1.outers.repositories.customs.EventCustomRepository;
 import org.dti.se.miniproject1backend1.outers.repositories.ones.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -99,6 +100,7 @@ public class OrganizerEventUseCase {
                         Voucher newVoucher = Voucher
                                 .builder()
                                 .id(UUID.randomUUID())
+                                .code(eventVoucher.getCode())
                                 .name(eventVoucher.getName())
                                 .description(eventVoucher.getDescription())
                                 .variableAmount(eventVoucher.getVariableAmount())
@@ -119,7 +121,10 @@ public class OrganizerEventUseCase {
                     Mono<Event> savedEvent = eventRepository.save(newEvent);
                     Mono<List<EventTicket>> savedEventTickets = eventTicketRepository.saveAll(newEventTickets).collectList();
                     Mono<List<EventTicketField>> savedEventTicketFields = eventTicketFieldRepository.saveAll(newEventTicketFields).collectList();
-                    Mono<List<Voucher>> savedVouchers = voucherRepository.saveAll(newVouchers).collectList();
+                    Mono<List<Voucher>> savedVouchers = voucherRepository
+                            .saveAll(newVouchers)
+                            .onErrorResume(DuplicateKeyException.class, e -> Mono.error(new VoucherCodeExistsException()))
+                            .collectList();
                     Mono<List<EventVoucher>> savedEventVouchers = eventVoucherRepository.saveAll(newEventVouchers).collectList();
 
                     return Mono.zip(savedEvent, savedEventTickets, savedEventTicketFields, savedVouchers, savedEventVouchers);
@@ -174,12 +179,22 @@ public class OrganizerEventUseCase {
                     Mono<List<Voucher>> patchedVouchers = patchVouchers(
                             request.getEventVouchers()
                                     .stream()
+                                    .filter(voucher -> voucher.getId() != null)
                                     .map(PatchEventVoucherRequest::getId)
                                     .toList(),
                             request.getEventVouchers()
+
                     );
 
-                    return Mono.zip(patchedEvent, patchedTickets, patchedTicketFields, patchedVouchers);
+                    Mono<List<Voucher>> createdVouchers = createVouchers(
+                            eventId,
+                            request.getEventVouchers()
+                                    .stream()
+                                    .filter(voucher -> voucher.getId() == null)
+                                    .toList()
+                    );
+
+                    return Mono.zip(patchedEvent, patchedTickets, patchedTicketFields, patchedVouchers, createdVouchers);
                 })
                 .flatMap(tuple -> basicEventUseCase
                         .retrieveEventById(eventId)
@@ -261,6 +276,40 @@ public class OrganizerEventUseCase {
                 })
                 .flatMap(voucherRepository::save)
                 .collectList();
+    }
+
+    private Mono<List<Voucher>> createVouchers(UUID eventId, List<PatchEventVoucherRequest> creatorEventVouchers) {
+        return voucherRepository
+                .saveAll(creatorEventVouchers
+                        .stream()
+                        .map(voucher -> Voucher
+                                .builder()
+                                .id(UUID.randomUUID())
+                                .code(voucher.getCode())
+                                .name(voucher.getName())
+                                .description(voucher.getDescription())
+                                .variableAmount(voucher.getVariableAmount())
+                                .startedAt(voucher.getStartedAt())
+                                .endedAt(voucher.getEndedAt())
+                                .build()
+                        )
+                        .toList()
+                )
+                .collectList()
+                .flatMap(vouchers -> eventVoucherRepository
+                        .saveAll(vouchers
+                                .stream()
+                                .map(voucher -> EventVoucher
+                                        .builder()
+                                        .id(UUID.randomUUID())
+                                        .eventId(eventId)
+                                        .voucherId(voucher.getId())
+                                        .build()
+                                )
+                                .toList()
+                        )
+                        .then(Mono.just(vouchers))
+                );
     }
 
 }
