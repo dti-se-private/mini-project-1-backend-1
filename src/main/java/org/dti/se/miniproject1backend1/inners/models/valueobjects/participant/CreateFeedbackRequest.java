@@ -1,4 +1,4 @@
-package org.dti.se.miniproject1backend1.inners.models.valueobjects.profile;
+package org.dti.se.miniproject1backend1.inners.models.valueobjects.participant;
 
 import lombok.*;
 import lombok.experimental.Accessors;
@@ -12,8 +12,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Accessors(chain = true)
-public class CreateFeedbackResponse extends Model {
-    private UUID id;
+public class CreateFeedbackRequest extends Model {
     private UUID transactionId;
     private Integer rating;
     private String review;

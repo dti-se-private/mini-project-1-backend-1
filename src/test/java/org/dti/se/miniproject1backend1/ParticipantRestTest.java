@@ -3,9 +3,9 @@ package org.dti.se.miniproject1backend1;
 import org.dti.se.miniproject1backend1.inners.models.entities.Feedback;
 import org.dti.se.miniproject1backend1.inners.models.entities.Transaction;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.ResponseBody;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.profile.CreateFeedbackRequest;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.profile.CreateFeedbackResponse;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.profile.RetrieveAllFeedbackResponse;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.participant.CreateFeedbackRequest;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.participant.CreateFeedbackResponse;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.participant.RetrieveAllFeedbackResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -17,7 +17,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class ProfileRestTest extends TestConfiguration {
+public class ParticipantRestTest extends TestConfiguration {
     @BeforeAll
     public void beforeAll() {
         configure();

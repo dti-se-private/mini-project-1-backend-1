@@ -2,10 +2,10 @@ package org.dti.se.miniproject1backend1.outers.deliveries.rests;
 
 import org.dti.se.miniproject1backend1.inners.models.entities.Account;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.ResponseBody;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.profile.CreateFeedbackRequest;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.profile.CreateFeedbackResponse;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.profile.RetrieveAllFeedbackResponse;
-import org.dti.se.miniproject1backend1.inners.usecases.profile.BasicProfileUseCase;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.participant.CreateFeedbackRequest;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.participant.CreateFeedbackResponse;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.participant.RetrieveAllFeedbackResponse;
+import org.dti.se.miniproject1backend1.inners.usecases.participant.BasicParticipantUseCase;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountUnAuthorizedException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -18,10 +18,10 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping(value = "/profile")
-public class ProfileRest {
+@RequestMapping(value = "/participant")
+public class ParticipantRest {
     @Autowired
-    BasicProfileUseCase basicProfileUseCase;
+    BasicParticipantUseCase basicProfileUseCase;
 
     @GetMapping("/feedbacks")
     public Mono<ResponseEntity<ResponseBody<List<RetrieveAllFeedbackResponse>>>> retrieveFeedbacks(
