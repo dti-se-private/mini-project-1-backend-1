@@ -14,8 +14,11 @@ import java.time.OffsetDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @Accessors(chain = true)
-public class RetrieveAllPointResponse extends Model {
-    private Double fixedAmount;
+public class RetrieveAllVoucherResponse extends Model {
+    private String code;
+    private String name;
+    private String description;
+    private Double variableAmount;
     @JsonSerialize(using = OffsetDateTimeSerializer.class)
     private OffsetDateTime endedAt;
 }

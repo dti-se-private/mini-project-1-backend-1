@@ -6,9 +6,7 @@ import org.dti.se.miniproject1backend1.inners.models.entities.Feedback;
 import org.dti.se.miniproject1backend1.inners.models.entities.Transaction;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.participant.*;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountUnAuthorizedException;
-import org.dti.se.miniproject1backend1.outers.repositories.ones.EventRepository;
-import org.dti.se.miniproject1backend1.outers.repositories.ones.FeedbackRepository;
-import org.dti.se.miniproject1backend1.outers.repositories.ones.TransactionRepository;
+import org.dti.se.miniproject1backend1.outers.repositories.ones.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -28,14 +26,51 @@ public class BasicParticipantUseCase {
     @Autowired
     FeedbackRepository feedbackRepository;
 
-    public Mono<List<RetrieveAllPointResponse>> retrievePoints(Account claimerAccount) {
-        return null;
+    @Autowired
+    PointRepository pointRepository;
+
+    @Autowired
+    AccountVoucherRepository accountVoucherRepository;
+
+    @Autowired
+    VoucherRepository voucherRepository;
+
+    public Mono<List<RetrieveAllPointResponse>> retrievePoints(
+            Account claimerAccount,
+            Integer page,
+            Integer size
+    ) {
+        return pointRepository.findByAccountId(claimerAccount.getId(), PageRequest.of(page, size))
+                .map(point -> RetrieveAllPointResponse.builder()
+                        .fixedAmount(point.getFixedAmount())
+                        .endedAt(point.getEndedAt())
+                        .build())
+                .collectList();
+    }
+
+    public Mono<List<RetrieveAllVoucherResponse>> retrieveVouchers(
+            Account claimerAccount,
+            Integer page,
+            Integer size
+    ) {
+        return accountVoucherRepository.findByAccountId(claimerAccount.getId(), PageRequest.of(page, size))
+                .flatMap(accountVoucher -> voucherRepository
+                        .findById(accountVoucher.getVoucherId())
+                        .map(voucher -> RetrieveAllVoucherResponse.builder()
+                                .name(voucher.getName())
+                                .description(voucher.getDescription())
+                                .code(voucher.getCode())
+                                .variableAmount(voucher.getVariableAmount())
+                                .endedAt(voucher.getEndedAt())
+                                .build()))
+                .collectList();
     }
 
     public Mono<List<RetrieveAllFeedbackResponse>> retrieveFeedbacks(
             Account claimerAccount,
             Integer page,
-            Integer size) {
+            Integer size
+    ) {
         return transactionRepository
                 .findByAccountId(claimerAccount.getId(), PageRequest.of(page, size))
                 .flatMap(transaction -> fetchFeedbackResponse(claimerAccount, transaction))

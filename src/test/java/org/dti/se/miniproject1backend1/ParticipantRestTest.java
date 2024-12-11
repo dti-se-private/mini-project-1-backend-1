@@ -1,11 +1,8 @@
 package org.dti.se.miniproject1backend1;
 
-import org.dti.se.miniproject1backend1.inners.models.entities.Feedback;
-import org.dti.se.miniproject1backend1.inners.models.entities.Transaction;
+import org.dti.se.miniproject1backend1.inners.models.entities.*;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.ResponseBody;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.participant.CreateFeedbackRequest;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.participant.CreateFeedbackResponse;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.participant.RetrieveAllFeedbackResponse;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.participant.*;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -29,6 +26,66 @@ public class ParticipantRestTest extends TestConfiguration {
     public void afterAll() {
         deauth();
         depopulate();
+    }
+
+    @Test
+    public void testRetrievePoints() {
+        List<Point> points = fakePoints.stream()
+                .filter(point -> point.getAccountId().equals(authenticatedAccount.getId()))
+                .toList();
+
+        webTestClient
+                .get()
+                .uri("/participant/points?page=0&size=10")
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody(new ParameterizedTypeReference<ResponseBody<List<RetrieveAllPointResponse>>>() {
+                })
+                .value(body -> {
+                    assert body != null;
+                    assert body.getData() != null;
+                    assert body.getData().size() == points.size();
+                    body.getData().forEach(data -> {
+                        assert points
+                                .stream()
+                                .anyMatch(point -> Objects.equals(point.getEndedAt(), data.getEndedAt()));
+                    });
+                });
+    }
+
+    @Test
+    public void testRetrieveVouchers() {
+        List<AccountVoucher> accountVouchers = fakeAccountVouchers.stream()
+                .filter(accountVoucher -> accountVoucher.getAccountId().equals(authenticatedAccount.getId()))
+                .toList();
+
+        List<Voucher> vouchers = fakeVouchers.stream()
+                .filter(voucher -> accountVouchers
+                        .stream()
+                        .anyMatch(accountVoucher -> accountVoucher.getVoucherId().equals(voucher.getId())))
+                .toList();
+
+        webTestClient
+                .get()
+                .uri("/participant/vouchers?page=0&size=10")
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody(new ParameterizedTypeReference<ResponseBody<List<RetrieveAllVoucherResponse>>>() {
+                })
+                .value(body -> {
+                    assert body != null;
+                    assert body.getData() != null;
+                    assert body.getData().size() == accountVouchers.size();
+                    body.getData().forEach(data -> {
+                        assert vouchers
+                                .stream()
+                                .anyMatch(voucher -> Objects.equals(
+                                        voucher.getCode(),
+                                        data.getCode()));
+                    });
+                });
     }
 
     @Test

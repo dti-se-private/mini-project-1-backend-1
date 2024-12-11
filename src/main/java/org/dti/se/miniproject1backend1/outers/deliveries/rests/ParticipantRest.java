@@ -2,9 +2,7 @@ package org.dti.se.miniproject1backend1.outers.deliveries.rests;
 
 import org.dti.se.miniproject1backend1.inners.models.entities.Account;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.ResponseBody;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.participant.CreateFeedbackRequest;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.participant.CreateFeedbackResponse;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.participant.RetrieveAllFeedbackResponse;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.participant.*;
 import org.dti.se.miniproject1backend1.inners.usecases.participant.BasicParticipantUseCase;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountUnAuthorizedException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +20,56 @@ import java.util.UUID;
 public class ParticipantRest {
     @Autowired
     BasicParticipantUseCase basicProfileUseCase;
+
+    @GetMapping("/points")
+    public Mono<ResponseEntity<ResponseBody<List<RetrieveAllPointResponse>>>> retrievePoints(
+            @AuthenticationPrincipal Account authenticatedAccount,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "10") Integer size
+    ) {
+        return basicProfileUseCase.retrievePoints(authenticatedAccount, page, size)
+                .map(points -> ResponseBody
+                        .<List<RetrieveAllPointResponse>>builder()
+                        .message("Points retrieved.")
+                        .data(points)
+                        .build()
+                        .toEntity(HttpStatus.OK)
+                )
+                .onErrorResume(e -> Mono
+                        .just(ResponseBody
+                                .<List<RetrieveAllPointResponse>>builder()
+                                .message("Internal server error.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+                        )
+                );
+    }
+
+    @GetMapping("/vouchers")
+    public Mono<ResponseEntity<ResponseBody<List<RetrieveAllVoucherResponse>>>> retrieveVouchers(
+            @AuthenticationPrincipal Account authenticatedAccount,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "10") Integer size
+    ) {
+        return basicProfileUseCase.retrieveVouchers(authenticatedAccount, page, size)
+                .map(vouchers -> ResponseBody
+                        .<List<RetrieveAllVoucherResponse>>builder()
+                        .message("Vouchers retrieved.")
+                        .data(vouchers)
+                        .build()
+                        .toEntity(HttpStatus.OK)
+                )
+                .onErrorResume(e -> Mono
+                        .just(ResponseBody
+                                .<List<RetrieveAllVoucherResponse>>builder()
+                                .message("Internal server error.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+                        )
+                );
+    }
 
     @GetMapping("/feedbacks")
     public Mono<ResponseEntity<ResponseBody<List<RetrieveAllFeedbackResponse>>>> retrieveFeedbacks(
