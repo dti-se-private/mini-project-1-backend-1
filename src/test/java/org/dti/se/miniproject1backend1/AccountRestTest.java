@@ -58,7 +58,7 @@ public class AccountRestTest extends TestConfiguration {
                     assert body.getData().getId() != null;
                     assert body.getData().getName().equals(accountCreator.getName());
                     assert body.getData().getEmail().equals(accountCreator.getEmail());
-                    assert body.getData().getPassword().equals(accountCreator.getPassword());
+                    assert securityConfiguration.matches(accountCreator.getPassword(), body.getData().getPassword());
                     assert body.getData().getPhone().equals(accountCreator.getPhone());
                     assert body.getData().getDob().equals(accountCreator.getDob());
                     assert body.getData().getReferralCode().equals(accountCreator.getReferralCode());
@@ -119,7 +119,7 @@ public class AccountRestTest extends TestConfiguration {
                     assert Objects.equals(body.getData().getId(), accountPatcher.getId());
                     assert body.getData().getName().equals(accountPatcher.getName());
                     assert body.getData().getEmail().equals(accountPatcher.getEmail());
-                    assert body.getData().getPassword().equals(accountPatcher.getPassword());
+                    assert securityConfiguration.matches(accountPatcher.getPassword(), body.getData().getPassword());
                     assert body.getData().getPhone().equals(accountPatcher.getPhone());
                     assert body.getData().getDob().equals(accountPatcher.getDob());
                     assert body.getData().getReferralCode().equals(accountPatcher.getReferralCode());

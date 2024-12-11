@@ -33,16 +33,16 @@ public class EventRest {
                         .data(eventList)
                         .build()
                         .toEntity(HttpStatus.OK)
-                )
-                .onErrorResume(e -> Mono
-                        .just(ResponseBody
-                                .<List<RetrieveEventResponse>>builder()
-                                .message("Internal server error.")
-                                .exception(e)
-                                .build()
-                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
-                        )
                 );
+//                .onErrorResume(e -> Mono
+//                        .just(ResponseBody
+//                                .<List<RetrieveEventResponse>>builder()
+//                                .message("Internal server error.")
+//                                .exception(e)
+//                                .build()
+//                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+//                        )
+//                );
     }
 
     @GetMapping("/{id}")
@@ -63,15 +63,15 @@ public class EventRest {
                                 .build()
                                 .toEntity(HttpStatus.NOT_FOUND)
                         )
-                )
-                .onErrorResume(e -> Mono
-                        .just(ResponseBody
-                                .<RetrieveEventResponse>builder()
-                                .message("Internal server error.")
-                                .exception(e)
-                                .build()
-                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
-                        )
                 );
+//                .onErrorResume(e -> Mono
+//                        .just(ResponseBody
+//                                .<RetrieveEventResponse>builder()
+//                                .message("Internal server error.")
+//                                .exception(e)
+//                                .build()
+//                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+//                        )
+//                );
     }
 }
