@@ -6,6 +6,8 @@ import org.dti.se.miniproject1backend1.inners.models.entities.Feedback;
 import org.dti.se.miniproject1backend1.inners.models.entities.Transaction;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.participant.*;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountUnAuthorizedException;
+import org.dti.se.miniproject1backend1.outers.exceptions.events.EventNotFoundException;
+import org.dti.se.miniproject1backend1.outers.repositories.customs.EventCustomRepository;
 import org.dti.se.miniproject1backend1.outers.repositories.ones.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -40,6 +42,9 @@ public class BasicParticipantUseCase {
 
     @Autowired
     TransactionVoucherRepository transactionVoucherRepository;
+
+    @Autowired
+    EventCustomRepository eventCustomRepository;
 
     public Mono<List<RetrieveAllPointResponse>> retrievePoints(
             Account claimerAccount,
@@ -131,6 +136,33 @@ public class BasicParticipantUseCase {
                 .findById(transactionId)
                 .filter(transaction -> transaction.getAccountId().equals(claimerAccount.getId()))
                 .flatMap(this::fetchTransactionDetailResponse);
+    }
+
+    public Mono<TransactionEventDetailResponse> getTransactionEventDetail(
+            Account claimerAccount,
+            UUID transactionId,
+            UUID eventId) {
+        return transactionRepository
+                .findById(transactionId)
+                .filter(transaction -> transaction.getEventId().equals(eventId))
+                .flatMap(transaction -> {
+                    if (!transaction.getAccountId().equals(claimerAccount.getId())) {
+                        return Mono.error(new AccountUnAuthorizedException());
+                    }
+                    return eventCustomRepository
+                            .retrieveEventById(eventId)
+                            .map(event -> event.setEventParticipants(null))
+                            .switchIfEmpty(Mono.error(new EventNotFoundException()));
+                }).flatMap(event -> Mono.just(TransactionEventDetailResponse.builder()
+                        .id(event.getId())
+                        .name(event.getName())
+                        .description(event.getDescription())
+                        .time(event.getTime())
+                        .location(event.getLocation())
+                        .category(event.getCategory())
+                        .eventTickets(event.getEventTickets())
+                        .eventVouchers(event.getEventVouchers())
+                        .build()));
     }
 
     private Mono<TransactionDetailResponse> fetchTransactionDetailResponse(Transaction transaction) {

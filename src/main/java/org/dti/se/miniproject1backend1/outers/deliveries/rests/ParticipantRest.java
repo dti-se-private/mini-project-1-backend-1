@@ -199,4 +199,37 @@ public class ParticipantRest {
                         )
                 );
     }
+
+    @GetMapping("/transactions/{id}/{eventID}")
+    public Mono<ResponseEntity<ResponseBody<TransactionEventDetailResponse>>> getTransactionDetail(
+            @AuthenticationPrincipal Account authenticatedAccount,
+            @PathVariable UUID id,
+            @PathVariable UUID eventID
+    ) {
+        return basicProfileUseCase.getTransactionEventDetail(authenticatedAccount, id, eventID)
+                .map(transaction -> ResponseBody
+                        .<TransactionEventDetailResponse>builder()
+                        .message("Transaction Detail retrieved.")
+                        .data(transaction)
+                        .build()
+                        .toEntity(HttpStatus.OK)
+                )
+                .onErrorResume(AccountUnAuthorizedException.class, e -> Mono
+                        .just(ResponseBody
+                                .<TransactionEventDetailResponse>builder()
+                                .message("Feedback does not belong to the given account.")
+                                .build()
+                                .toEntity(HttpStatus.CONFLICT)
+                        )
+                )
+                .onErrorResume(e -> Mono
+                        .just(ResponseBody
+                                .<TransactionEventDetailResponse>builder()
+                                .message("Internal server error.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+                        )
+                );
+    }
 }

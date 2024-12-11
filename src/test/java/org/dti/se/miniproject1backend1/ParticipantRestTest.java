@@ -221,4 +221,36 @@ public class ParticipantRestTest extends TestConfiguration {
                     assert body.getData().getTime().equals(Objects.requireNonNull(event).getTime());
                 });
     }
+
+    @Test
+    public void testGetTransactionEventDetail() {
+        Transaction transaction = fakeTransactions.stream()
+                .filter(t -> t.getAccountId().equals(authenticatedAccount.getId())).skip(1)
+                .findFirst().orElse(null);
+
+        Event event = fakeEvents.stream()
+                .filter(e -> {
+                    assert e.getId() != null;
+                    return e.getId().equals(Objects.requireNonNull(transaction).getEventId());
+                })
+                .findFirst().orElse(null);
+
+        webTestClient
+                .get()
+                .uri("/participant/transactions/{id}/{eventID}",
+                        transaction != null ? transaction.getId() : UUID.randomUUID(),
+                        Objects.requireNonNull(event).getId())
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody(new ParameterizedTypeReference<ResponseBody<TransactionEventDetailResponse>>() {
+                })
+                .value(body -> {
+                    assert body != null;
+                    assert body.getData() != null;
+                    assert body.getData().getId().equals(Objects.requireNonNull(event).getId());
+                    assert body.getData().getName().equals(Objects.requireNonNull(event).getName());
+                    assert body.getData().getTime().equals(Objects.requireNonNull(event).getTime());
+                });
+    }
 }
