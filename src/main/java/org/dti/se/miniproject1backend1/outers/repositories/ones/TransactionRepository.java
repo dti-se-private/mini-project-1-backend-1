@@ -18,4 +18,6 @@ public interface TransactionRepository extends R2dbcRepository<Transaction, Long
     Mono<Void> deleteById(UUID id);
 
     Flux<Transaction> findByAccountId(UUID accountId, Pageable pageable);
+
+    Mono<Transaction> findById(UUID id);
 }

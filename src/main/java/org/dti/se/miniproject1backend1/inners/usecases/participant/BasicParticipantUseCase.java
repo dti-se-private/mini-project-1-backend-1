@@ -35,6 +35,12 @@ public class BasicParticipantUseCase {
     @Autowired
     VoucherRepository voucherRepository;
 
+    @Autowired
+    TransactionPointRepository transactionPointRepository;
+
+    @Autowired
+    TransactionVoucherRepository transactionVoucherRepository;
+
     public Mono<List<RetrieveAllPointResponse>> retrievePoints(
             Account claimerAccount,
             Integer page,
@@ -118,8 +124,50 @@ public class BasicParticipantUseCase {
                 .collectList();
     }
 
-    public Mono<TransactionDetailResponse> getTransactionDetail(Account claimerAccount, UUID transactionId) {
-        return null;
+    public Mono<TransactionDetailResponse> getTransactionDetail(
+            Account claimerAccount,
+            UUID transactionId) {
+        return transactionRepository
+                .findById(transactionId)
+                .filter(transaction -> transaction.getAccountId().equals(claimerAccount.getId()))
+                .flatMap(this::fetchTransactionDetailResponse);
+    }
+
+    private Mono<TransactionDetailResponse> fetchTransactionDetailResponse(Transaction transaction) {
+        return Mono.zip(
+                fetchUsedPointResponse(transaction),
+                fetchUsedVoucherResponse(transaction),
+                fetchTransactionResponse(transaction)
+        ).map(tuple -> TransactionDetailResponse.builder()
+                .transactionId(transaction.getId())
+                .eventId(transaction.getEventId())
+                .time(tuple.getT3().getTime())
+                .usedPoints(tuple.getT1())
+                .usedVouchers(tuple.getT2())
+                .build());
+    }
+
+    private Mono<List<UsedPointResponse>> fetchUsedPointResponse(Transaction transaction) {
+        return transactionPointRepository.findByTransactionId(transaction.getId())
+                .flatMap(transactionPoint -> pointRepository.findById(transactionPoint.getPointId())
+                        .map(point -> UsedPointResponse.builder()
+                                .fixedAmount(transactionPoint.getFixedAmount())
+                                .endedAt(point.getEndedAt())
+                                .build()))
+                .collectList();
+    }
+
+    private Mono<List<UsedVoucherResponse>> fetchUsedVoucherResponse(Transaction transaction) {
+        return transactionVoucherRepository.findByTransactionId(transaction.getId())
+                .flatMap(transactionVoucher -> voucherRepository.findById(transactionVoucher.getVoucherId())
+                        .map(voucher -> UsedVoucherResponse.builder()
+                                .name(voucher.getName())
+                                .description(voucher.getDescription())
+                                .code(voucher.getCode())
+                                .variableAmount(voucher.getVariableAmount())
+                                .endedAt(voucher.getEndedAt())
+                                .build()))
+                .collectList();
     }
 
     private Mono<RetrieveAllTransactionResponse> fetchTransactionResponse(Transaction transaction) {

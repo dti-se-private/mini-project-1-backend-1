@@ -191,4 +191,34 @@ public class ParticipantRestTest extends TestConfiguration {
                     });
                 });
     }
+
+    @Test
+    public void testGetTransactionDetail() {
+        Transaction transaction = fakeTransactions.stream()
+                .filter(t -> t.getAccountId().equals(authenticatedAccount.getId())).skip(1)
+                .findFirst().orElse(null);
+
+        Event event = fakeEvents.stream()
+                .filter(e -> {
+                    assert e.getId() != null;
+                    return e.getId().equals(Objects.requireNonNull(transaction).getEventId());
+                })
+                .findFirst().orElse(null);
+
+        webTestClient
+                .get()
+                .uri("/participant/transactions/{id}", transaction != null ? transaction.getId() : UUID.randomUUID())
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody(new ParameterizedTypeReference<ResponseBody<TransactionDetailResponse>>() {
+                })
+                .value(body -> {
+                    assert body != null;
+                    assert body.getData() != null;
+                    assert body.getData().getTransactionId().equals(Objects.requireNonNull(transaction).getId());
+                    assert body.getData().getEventId().equals(Objects.requireNonNull(transaction).getEventId());
+                    assert body.getData().getTime().equals(Objects.requireNonNull(event).getTime());
+                });
+    }
 }
