@@ -10,7 +10,8 @@ import java.util.UUID;
 
 @Repository
 public interface EventTicketRepository extends R2dbcRepository<EventTicket, UUID> {
-    Mono<EventTicket> findByEventId(UUID eventId);
 
     Flux<EventTicket> findAllByEventId(UUID eventId);
+
+    Mono<Void> deleteAllByEventId(UUID eventId);
 }

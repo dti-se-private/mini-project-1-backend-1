@@ -86,8 +86,8 @@ public class TestConfiguration {
     }
 
     public void populate() {
+        OffsetDateTime now = OffsetDateTime.now().truncatedTo(ChronoUnit.MICROS);
         for (int i = 0; i < 4; i++) {
-            OffsetDateTime now = OffsetDateTime.now().truncatedTo(ChronoUnit.MICROS);
             Account newAccount = Account
                     .builder()
                     .id(UUID.randomUUID())
@@ -112,8 +112,8 @@ public class TestConfiguration {
                     .name(String.format("name-%s", UUID.randomUUID()))
                     .description(String.format("description-%s", UUID.randomUUID()))
                     .variableAmount(10.0 + Math.random() * 90)
-                    .startedAt(OffsetDateTime.now().minusDays(1))
-                    .endedAt(OffsetDateTime.now().plusDays(1))
+                    .startedAt(now.minusDays(1))
+                    .endedAt(now.plusDays(1))
                     .build();
             fakeVouchers.add(voucher);
 
@@ -139,7 +139,7 @@ public class TestConfiguration {
                     .description(String.format("desc-%s", UUID.randomUUID()))
                     .location(String.format("location-%s", UUID.randomUUID()))
                     .category(String.format("category-%s", UUID.randomUUID()))
-                    .time(OffsetDateTime.now().plusDays(1))
+                    .time(now.plusDays(1))
                     .bannerImageUrl(String.format("bannerImageUrl-%s", UUID.randomUUID()))
                     .build();
             fakeEvents.add(event);
@@ -186,7 +186,7 @@ public class TestConfiguration {
                     .id(UUID.randomUUID())
                     .accountId(account.getId())
                     .fixedAmount(100.0 + Math.random() * 100)
-                    .endedAt(OffsetDateTime.now().plusDays(30))
+                    .endedAt(now.plusDays(30))
                     .build();
             fakePoints.add(point);
         }
@@ -201,7 +201,7 @@ public class TestConfiguration {
                         .id(UUID.randomUUID())
                         .accountId(account.getId())
                         .eventId(event.getId())
-                        .time(OffsetDateTime.now())
+                        .time(now)
                         .build();
                 fakeTransactions.add(transaction);
 
@@ -254,7 +254,18 @@ public class TestConfiguration {
 
     public void auth() {
         authenticatedAccount = register().getData();
+        fakeAccounts.add(authenticatedAccount);
         authenticatedSession = login(authenticatedAccount).getData();
+        String authorization = String.format("Bearer %s", authenticatedSession.getAccessToken());
+        webTestClient = webTestClient
+                .mutate()
+                .defaultHeader(HttpHeaders.AUTHORIZATION, authorization)
+                .build();
+    }
+
+    public void auth(Account account) {
+        authenticatedAccount = account;
+        authenticatedSession = login(account).getData();
         String authorization = String.format("Bearer %s", authenticatedSession.getAccessToken());
         webTestClient = webTestClient
                 .mutate()
@@ -304,6 +315,7 @@ public class TestConfiguration {
     }
 
     protected ResponseBody<Session> login(Account account) {
+        OffsetDateTime now = OffsetDateTime.now().truncatedTo(ChronoUnit.MICROS);
         LoginByEmailAndPasswordRequest requestBody = LoginByEmailAndPasswordRequest
                 .builder()
                 .email(account.getEmail())
@@ -325,8 +337,8 @@ public class TestConfiguration {
                     assert body.getData() != null;
                     assert body.getData().getAccessToken() != null;
                     assert body.getData().getRefreshToken() != null;
-                    assert body.getData().getAccessTokenExpiredAt().isAfter(OffsetDateTime.now().truncatedTo(ChronoUnit.MICROS));
-                    assert body.getData().getRefreshTokenExpiredAt().isAfter(OffsetDateTime.now().truncatedTo(ChronoUnit.MICROS));
+                    assert body.getData().getAccessTokenExpiredAt().isAfter(now);
+                    assert body.getData().getRefreshTokenExpiredAt().isAfter(now);
                 })
                 .returnResult()
                 .getResponseBody();

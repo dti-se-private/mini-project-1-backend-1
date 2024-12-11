@@ -10,4 +10,8 @@ import java.util.UUID;
 @Repository
 public interface TransactionRepository extends R2dbcRepository<Transaction, Long> {
     Mono<Integer> countByEventId(UUID eventId);
+
+    Mono<Void> deleteAllByEventId(UUID eventId);
+
+    Mono<Void> deleteById(UUID id);
 }

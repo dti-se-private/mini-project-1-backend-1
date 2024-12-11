@@ -26,4 +26,5 @@ public class RetrieveEventResponse extends Model {
     private RetrieveOrganizerAccountResponse organizerAccount;
     private List<RetrieveEventTicketResponse> eventTickets;
     private List<RetrieveEventVoucherResponse> eventVouchers;
+    private List<RetrieveEventParticipantResponse> eventParticipants;
 }

@@ -1,6 +1,7 @@
 package org.dti.se.miniproject1backend1.inners.usecases.accounts;
 
 import org.dti.se.miniproject1backend1.inners.models.entities.Account;
+import org.dti.se.miniproject1backend1.outers.configurations.SecurityConfiguration;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountNotFoundException;
 import org.dti.se.miniproject1backend1.outers.repositories.ones.AccountRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,9 +15,13 @@ public class BasicAccountUseCase {
     @Autowired
     private AccountRepository accountRepository;
 
+    @Autowired
+    SecurityConfiguration securityConfiguration;
+
     public Mono<Account> saveOne(Account account) {
-        return accountRepository
-                .save(account);
+        return Mono
+                .fromCallable(() -> account.setPassword(securityConfiguration.encode(account.getPassword())))
+                .flatMap(accountToSave -> accountRepository.save(accountToSave));
     }
 
     public Mono<Account> findOneById(UUID id) {
@@ -42,6 +47,7 @@ public class BasicAccountUseCase {
                 .findFirstById(id)
                 .switchIfEmpty(Mono.error(new AccountNotFoundException()))
                 .map(accountToPatch -> accountToPatch.patchFrom(account).setIsNew(false))
+                .map(accountToPatch -> accountToPatch.setPassword(securityConfiguration.encode(accountToPatch.getPassword())))
                 .flatMap(accountToPatch -> accountRepository.save(accountToPatch));
     }
 
