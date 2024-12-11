@@ -16,6 +16,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -54,6 +55,8 @@ public class BasicTransactionUseCase {
 
     @Autowired
     private TransactionTicketFieldRepository transactionTicketFieldRepository;
+    @Autowired
+    private TransactionPointRepository transactionPointRepository;
 
 
     public Mono<TransactionCheckoutResponse> checkout(Account authenticatedAccount, TransactionCheckoutRequest request) {
@@ -132,11 +135,20 @@ public class BasicTransactionUseCase {
                     Double usedPoint = totalPoint - (totalPrice - priceDeductedByPoint);
                     Double priceDeductedByVoucher = Math.max(priceDeductedByPoint * totalVoucher, 0.0);
 
+                    List<TransactionPoint> transactionPoints = new ArrayList<>();
                     Double usedPointRemaining = usedPoint;
                     for (Point point : tuple.getT2().getT1()) {
                         if (usedPointRemaining > 0) {
                             Double currentPoint = Math.min(usedPointRemaining, point.getFixedAmount());
                             usedPointRemaining -= currentPoint;
+                            transactionPoints.add(TransactionPoint
+                                    .builder()
+                                    .id(UUID.randomUUID())
+                                    .transactionId(null)
+                                    .pointId(point.getId())
+                                    .amount(currentPoint)
+                                    .build()
+                            );
                             point.setFixedAmount(point.getFixedAmount() - currentPoint);
                         }
                         point.setIsNew(false);
@@ -160,7 +172,7 @@ public class BasicTransactionUseCase {
 
                     return Mono.zip(
                             Mono.just(tuple.getT1()),
-                            Mono.zip(updatedPoints, Mono.just(tuple.getT2().getT2()), updatedAccountVouchers, finalPrice)
+                            Mono.zip(updatedPoints, Mono.just(transactionPoints), Mono.just(tuple.getT2().getT2()), updatedAccountVouchers, finalPrice)
                     );
                 })
                 .flatMap(tuple -> {
@@ -174,7 +186,7 @@ public class BasicTransactionUseCase {
 
                     List<TransactionVoucher> transactionVouchers = tuple
                             .getT2()
-                            .getT3()
+                            .getT4()
                             .stream()
                             .map(accountVoucher -> TransactionVoucher
                                     .builder()
@@ -186,7 +198,7 @@ public class BasicTransactionUseCase {
                                             .stream()
                                             .flatMap(code -> tuple
                                                     .getT2()
-                                                    .getT2()
+                                                    .getT3()
                                                     .stream()
                                                     .filter(voucher -> voucher.getCode().equals(code))
                                             )
@@ -222,13 +234,21 @@ public class BasicTransactionUseCase {
                             )
                             .toList();
 
+                    List<TransactionPoint> transactionPoints = tuple
+                            .getT2()
+                            .getT2()
+                            .stream()
+                            .map(transactionPoint -> transactionPoint.setTransactionId(newTransaction.getId()))
+                            .toList();
+
                     Mono<Transaction> createdTransaction = transactionRepository.save(newTransaction);
+                    Mono<List<TransactionPoint>> createdTransactionPoints = transactionPointRepository.saveAll(transactionPoints).collectList();
                     Mono<List<TransactionVoucher>> createdTransactionVouchers = transactionVoucherRepository.saveAll(transactionVouchers).collectList();
                     Mono<List<TransactionTicketField>> createdTransactionTicketFields = transactionTicketFieldRepository.saveAll(transactionTicketFields).collectList();
                     return Mono.zip(
                             Mono.just(tuple.getT1()),
                             Mono.just(tuple.getT2()),
-                            Mono.zip(createdTransaction, createdTransactionVouchers, createdTransactionTicketFields)
+                            Mono.zip(createdTransaction, createdTransactionVouchers, createdTransactionTicketFields, createdTransactionPoints)
                     );
                 })
                 .map(tuple -> {
@@ -266,7 +286,7 @@ public class BasicTransactionUseCase {
                             .transactionTickets(transactionTickets)
                             .voucherCodes(request.getVoucherCodes())
                             .points(request.getPoints())
-                            .finalPrice(tuple.getT2().getT4())
+                            .finalPrice(tuple.getT2().getT5())
                             .build();
                 });
     }
