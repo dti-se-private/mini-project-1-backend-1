@@ -153,7 +153,7 @@ public class ParticipantRestTest extends TestConfiguration {
     }
 
     @Test
-    public  void testDeleteFeedback() {
+    public void testDeleteFeedback() {
         Feedback feedback = fakeFeedbacks.stream()
                 .filter(f -> f.getAccountId().equals(authenticatedAccount.getId()))
                 .findFirst().orElse(null);
@@ -164,5 +164,31 @@ public class ParticipantRestTest extends TestConfiguration {
                 .exchange()
                 .expectStatus()
                 .isOk();
+    }
+
+    @Test
+    public void testRetrieveTransactions() {
+        List<Transaction> transactions = fakeTransactions
+                .stream().filter(transaction -> transaction.getAccountId().equals(authenticatedAccount.getId()))
+                .toList();
+
+        webTestClient
+                .get()
+                .uri("/participant/transactions?page=0&size=10")
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody(new ParameterizedTypeReference<ResponseBody<List<RetrieveAllTransactionResponse>>>() {
+                })
+                .value(body -> {
+                    assert body != null;
+                    assert body.getData() != null;
+                    assert body.getData().size() == transactions.size();
+                    body.getData().forEach(data -> {
+                        assert transactions
+                                .stream()
+                                .anyMatch(trx -> Objects.equals(trx.getId(), data.getTransactionId()));
+                    });
+                });
     }
 }

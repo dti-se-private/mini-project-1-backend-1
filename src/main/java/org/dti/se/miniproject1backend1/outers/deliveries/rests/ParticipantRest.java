@@ -150,4 +150,53 @@ public class ParticipantRest {
                         )
                 );
     }
+
+    @GetMapping("/transactions")
+    public Mono<ResponseEntity<ResponseBody<List<RetrieveAllTransactionResponse>>>> retrieveTransactions(
+            @AuthenticationPrincipal Account authenticatedAccount,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "10") Integer size
+    ) {
+        return basicProfileUseCase.retrieveTransactions(authenticatedAccount, page, size)
+                .map(transactions -> ResponseBody
+                        .<List<RetrieveAllTransactionResponse>>builder()
+                        .message("Transactions retrieved.")
+                        .data(transactions)
+                        .build()
+                        .toEntity(HttpStatus.OK)
+                )
+                .onErrorResume(e -> Mono
+                        .just(ResponseBody
+                                .<List<RetrieveAllTransactionResponse>>builder()
+                                .message("Internal server error.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+                        )
+                );
+    }
+
+    @GetMapping("/transactions/{id}")
+    public Mono<ResponseEntity<ResponseBody<TransactionDetailResponse>>> getTransactionDetail(
+            @AuthenticationPrincipal Account authenticatedAccount,
+            @PathVariable UUID id
+    ) {
+        return basicProfileUseCase.getTransactionDetail(authenticatedAccount, id)
+                .map(transaction -> ResponseBody
+                        .<TransactionDetailResponse>builder()
+                        .message("Transaction Detail retrieved.")
+                        .data(transaction)
+                        .build()
+                        .toEntity(HttpStatus.OK)
+                )
+                .onErrorResume(e -> Mono
+                        .just(ResponseBody
+                                .<TransactionDetailResponse>builder()
+                                .message("Internal server error.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+                        )
+                );
+    }
 }

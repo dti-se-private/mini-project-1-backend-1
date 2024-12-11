@@ -107,6 +107,32 @@ public class BasicParticipantUseCase {
                 .then();
     }
 
+    public Mono<List<RetrieveAllTransactionResponse>> retrieveTransactions(
+            Account claimerAccount,
+            Integer page,
+            Integer size
+    ) {
+        return transactionRepository
+                .findByAccountId(claimerAccount.getId(), PageRequest.of(page, size))
+                .flatMap(this::fetchTransactionResponse)
+                .collectList();
+    }
+
+    public Mono<TransactionDetailResponse> getTransactionDetail(Account claimerAccount, UUID transactionId) {
+        return null;
+    }
+
+    private Mono<RetrieveAllTransactionResponse> fetchTransactionResponse(Transaction transaction) {
+        return eventRepository
+                .findById(transaction.getEventId())
+                .flatMap(event -> Mono
+                        .just(RetrieveAllTransactionResponse.builder()
+                        .eventId(event.getId()).transactionId(transaction.getId())
+                        .eventName(event.getName())
+                        .time(event.getTime())
+                        .build()));
+    }
+
     private Mono<RetrieveAllFeedbackResponse> fetchFeedbackResponse(Account claimerAccount, Transaction transaction) {
         return Mono.zip(
                 eventRepository.findById(transaction.getEventId()),
