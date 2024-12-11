@@ -4,10 +4,7 @@ import org.dti.se.miniproject1backend1.inners.models.entities.Account;
 import org.dti.se.miniproject1backend1.inners.models.entities.Event;
 import org.dti.se.miniproject1backend1.inners.models.entities.Feedback;
 import org.dti.se.miniproject1backend1.inners.models.entities.Transaction;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.participant.CreateFeedbackRequest;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.participant.CreateFeedbackResponse;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.participant.RetrieveAllFeedbackResponse;
-import org.dti.se.miniproject1backend1.inners.models.valueobjects.participant.RetrieveFeedbackResponse;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.participant.*;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountUnAuthorizedException;
 import org.dti.se.miniproject1backend1.outers.repositories.ones.EventRepository;
 import org.dti.se.miniproject1backend1.outers.repositories.ones.FeedbackRepository;
@@ -30,6 +27,10 @@ public class BasicParticipantUseCase {
 
     @Autowired
     FeedbackRepository feedbackRepository;
+
+    public Mono<List<RetrieveAllPointResponse>> retrievePoints(Account claimerAccount) {
+        return null;
+    }
 
     public Mono<List<RetrieveAllFeedbackResponse>> retrieveFeedbacks(
             Account claimerAccount,
