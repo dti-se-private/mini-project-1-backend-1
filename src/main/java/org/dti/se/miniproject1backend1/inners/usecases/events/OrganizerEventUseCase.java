@@ -38,6 +38,8 @@ public class OrganizerEventUseCase {
     EventCustomRepository eventCustomRepository;
     @Autowired
     private EventVoucherRepository eventVoucherRepository;
+    @Autowired
+    private TransactionRepository transactionRepository;
 
     public Mono<List<RetrieveEventResponse>> retrieveEvents(Account authenticatedAccount, Integer page, Integer size) {
         return eventCustomRepository
@@ -318,6 +320,15 @@ public class OrganizerEventUseCase {
                         )
                         .then(Mono.just(vouchers))
                 );
+    }
+
+
+    public Mono<Void> deleteEventById(Account authenticatedAccount, UUID eventId) {
+        return eventCustomRepository
+                .retrieveEventById(eventId)
+                .filter(event -> event.getOrganizerAccount().getId().equals(authenticatedAccount.getId()))
+                .switchIfEmpty(Mono.error(new AccountUnAuthorizedException()))
+                .flatMap(event -> eventRepository.deleteById(event.getId()));
     }
 
 }

@@ -270,4 +270,13 @@ public class BasicTransactionUseCase {
                             .build();
                 });
     }
+
+    public Mono<TransactionCheckoutResponse> tryCheckout(Account authenticatedAccount, TransactionCheckoutRequest request) {
+        return checkout(authenticatedAccount, request)
+                .flatMap(transaction ->
+                        transactionRepository
+                                .deleteById(transaction.getId())
+                                .then(Mono.just(transaction))
+                );
+    }
 }

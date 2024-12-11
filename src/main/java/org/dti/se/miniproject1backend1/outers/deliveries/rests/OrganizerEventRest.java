@@ -162,4 +162,38 @@ public class OrganizerEventRest {
                         )
                 );
     }
+
+    @DeleteMapping("/{id}")
+    public Mono<ResponseEntity<ResponseBody<Void>>> deleteEvent(
+            @AuthenticationPrincipal Account authenticatedAccount,
+            @PathVariable UUID id
+    ) {
+        return organizerEventUseCase
+                .deleteEventById(authenticatedAccount, id)
+                .thenReturn(ResponseBody
+                        .<Void>builder()
+                        .message("Delete event by organizer succeed.")
+                        .build()
+                        .toEntity(HttpStatus.OK)
+                )
+                .onErrorResume(AccountUnAuthorizedException.class, e -> Mono
+                        .just(ResponseBody
+                                .<Void>builder()
+                                .message("Delete event by organizer is unauthorized.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.UNAUTHORIZED)
+                        )
+                )
+                .onErrorResume(e -> Mono
+                        .just(ResponseBody
+                                .<Void>builder()
+                                .message("Internal server error.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+                        )
+                );
+    }
+
 }
