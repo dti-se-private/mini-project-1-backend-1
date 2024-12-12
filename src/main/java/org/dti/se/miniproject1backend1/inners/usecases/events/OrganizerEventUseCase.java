@@ -41,6 +41,19 @@ public class OrganizerEventUseCase {
     @Autowired
     private TransactionRepository transactionRepository;
 
+
+    public Mono<List<RetrieveEventParticipantResponse>> retrieveEventParticipants(Account authenticatedAccount, UUID eventId, Integer page, Integer size) {
+        return eventRepository
+                .findFirstById(eventId)
+                .switchIfEmpty(Mono.error(new EventNotFoundException()))
+                .filter(event -> event.getAccountId().equals(authenticatedAccount.getId()))
+                .switchIfEmpty(Mono.error(new AccountUnAuthorizedException()))
+                .flatMap(event -> eventCustomRepository
+                        .retrieveEventParticipantCountByEventIds(List.of(eventId), page, size)
+                        .collectList()
+                );
+    }
+
     public Mono<List<RetrieveEventResponse>> retrieveEvents(Account authenticatedAccount, Integer page, Integer size) {
         return eventCustomRepository
                 .retrieveEventsByAccountId(authenticatedAccount.getId(), page, size)

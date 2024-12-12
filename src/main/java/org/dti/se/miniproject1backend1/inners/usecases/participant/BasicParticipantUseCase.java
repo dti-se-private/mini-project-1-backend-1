@@ -46,63 +46,73 @@ public class BasicParticipantUseCase {
     @Autowired
     EventCustomRepository eventCustomRepository;
 
-    public Mono<List<RetrieveAllPointResponse>> retrievePoints(
+    public Mono<List<RetrievePointResponse>> retrievePoints(
             Account claimerAccount,
             Integer page,
             Integer size
     ) {
-        return pointRepository.findByAccountId(claimerAccount.getId(), PageRequest.of(page, size))
-                .map(point -> RetrieveAllPointResponse.builder()
+        return pointRepository.findAllByAccountId(claimerAccount.getId(), PageRequest.of(page, size))
+                .map(point -> RetrievePointResponse
+                        .builder()
                         .fixedAmount(point.getFixedAmount())
                         .endedAt(point.getEndedAt())
-                        .build())
+                        .build()
+                )
                 .collectList();
     }
 
-    public Mono<List<RetrieveAllVoucherResponse>> retrieveVouchers(
+    public Mono<List<RetrieveVoucherResponse>> retrieveVouchers(
             Account claimerAccount,
             Integer page,
             Integer size
     ) {
-        return accountVoucherRepository.findByAccountId(claimerAccount.getId(), PageRequest.of(page, size))
+        return accountVoucherRepository
+                .findAllByAccountId(claimerAccount.getId(), PageRequest.of(page, size))
                 .flatMap(accountVoucher -> voucherRepository
                         .findById(accountVoucher.getVoucherId())
-                        .map(voucher -> RetrieveAllVoucherResponse.builder()
+                        .map(voucher -> RetrieveVoucherResponse
+                                .builder()
                                 .name(voucher.getName())
                                 .description(voucher.getDescription())
                                 .code(voucher.getCode())
                                 .variableAmount(voucher.getVariableAmount())
                                 .endedAt(voucher.getEndedAt())
-                                .build()))
+                                .build()
+                        )
+                )
                 .collectList();
     }
 
-    public Mono<List<RetrieveAllFeedbackResponse>> retrieveFeedbacks(
+    public Mono<List<RetrieveFeedbackResponse>> retrieveFeedbacks(
             Account claimerAccount,
             Integer page,
             Integer size
     ) {
         return transactionRepository
-                .findByAccountId(claimerAccount.getId(), PageRequest.of(page, size))
+                .findAllByAccountId(claimerAccount.getId(), PageRequest.of(page, size))
                 .flatMap(transaction -> fetchFeedbackResponse(claimerAccount, transaction))
                 .collectList();
     }
 
     public Mono<CreateFeedbackResponse> createFeedback(Account claimerAccount, CreateFeedbackRequest request) {
-        return feedbackRepository.save(Feedback.builder()
-                            .id(UUID.randomUUID())
-                            .transactionId(request.getTransactionId())
-                            .accountId(claimerAccount.getId())
-                            .rating(request.getRating())
-                            .review(request.getReview())
-                            .build())
-                .flatMap(feedback -> Mono.just(CreateFeedbackResponse
+        return feedbackRepository.save(Feedback
                         .builder()
-                        .id(feedback.getId())
-                        .transactionId(feedback.getTransactionId())
-                        .rating(feedback.getRating())
-                        .review(feedback.getReview())
-                        .build())
+                        .id(UUID.randomUUID())
+                        .transactionId(request.getTransactionId())
+                        .accountId(claimerAccount.getId())
+                        .rating(request.getRating())
+                        .review(request.getReview())
+                        .build()
+                )
+                .flatMap(feedback -> Mono
+                        .just(CreateFeedbackResponse
+                                .builder()
+                                .id(feedback.getId())
+                                .transactionId(feedback.getTransactionId())
+                                .rating(feedback.getRating())
+                                .review(feedback.getReview())
+                                .build()
+                        )
                 );
     }
 
@@ -118,13 +128,13 @@ public class BasicParticipantUseCase {
                 .then();
     }
 
-    public Mono<List<RetrieveAllTransactionResponse>> retrieveTransactions(
+    public Mono<List<RetrieveTransactionResponse>> retrieveTransactions(
             Account claimerAccount,
             Integer page,
             Integer size
     ) {
         return transactionRepository
-                .findByAccountId(claimerAccount.getId(), PageRequest.of(page, size))
+                .findAllByAccountId(claimerAccount.getId(), PageRequest.of(page, size))
                 .flatMap(this::fetchTransactionResponse)
                 .collectList();
     }
@@ -151,18 +161,19 @@ public class BasicParticipantUseCase {
                     }
                     return eventCustomRepository
                             .retrieveEventById(eventId)
-                            .map(event -> event.setEventParticipants(null))
                             .switchIfEmpty(Mono.error(new EventNotFoundException()));
                 }).flatMap(event -> Mono.just(TransactionEventDetailResponse.builder()
-                        .id(event.getId())
-                        .name(event.getName())
-                        .description(event.getDescription())
-                        .time(event.getTime())
-                        .location(event.getLocation())
-                        .category(event.getCategory())
-                        .eventTickets(event.getEventTickets())
-                        .eventVouchers(event.getEventVouchers())
-                        .build()));
+                                .id(event.getId())
+                                .name(event.getName())
+                                .description(event.getDescription())
+                                .time(event.getTime())
+                                .location(event.getLocation())
+                                .category(event.getCategory())
+                                .eventTickets(event.getEventTickets())
+                                .eventVouchers(event.getEventVouchers())
+                                .build()
+                        )
+                );
     }
 
     private Mono<TransactionDetailResponse> fetchTransactionDetailResponse(Transaction transaction) {
@@ -170,71 +181,84 @@ public class BasicParticipantUseCase {
                 fetchUsedPointResponse(transaction),
                 fetchUsedVoucherResponse(transaction),
                 fetchTransactionResponse(transaction)
-        ).map(tuple -> TransactionDetailResponse.builder()
+        ).map(tuple -> TransactionDetailResponse
+                .builder()
                 .transactionId(transaction.getId())
                 .eventId(transaction.getEventId())
                 .time(tuple.getT3().getTime())
                 .usedPoints(tuple.getT1())
                 .usedVouchers(tuple.getT2())
-                .build());
+                .build()
+        );
     }
 
     private Mono<List<UsedPointResponse>> fetchUsedPointResponse(Transaction transaction) {
-        return transactionPointRepository.findByTransactionId(transaction.getId())
-                .flatMap(transactionPoint -> pointRepository.findById(transactionPoint.getPointId())
+        return transactionPointRepository
+                .findByTransactionId(transaction.getId())
+                .flatMap(transactionPoint -> pointRepository
+                        .findById(transactionPoint.getPointId())
                         .map(point -> UsedPointResponse.builder()
                                 .fixedAmount(transactionPoint.getFixedAmount())
                                 .endedAt(point.getEndedAt())
-                                .build()))
+                                .build()
+                        )
+                )
                 .collectList();
     }
 
     private Mono<List<UsedVoucherResponse>> fetchUsedVoucherResponse(Transaction transaction) {
-        return transactionVoucherRepository.findByTransactionId(transaction.getId())
-                .flatMap(transactionVoucher -> voucherRepository.findById(transactionVoucher.getVoucherId())
-                        .map(voucher -> UsedVoucherResponse.builder()
+        return transactionVoucherRepository
+                .findByTransactionId(transaction.getId())
+                .flatMap(transactionVoucher -> voucherRepository
+                        .findById(transactionVoucher.getVoucherId())
+                        .map(voucher -> UsedVoucherResponse
+                                .builder()
                                 .name(voucher.getName())
                                 .description(voucher.getDescription())
                                 .code(voucher.getCode())
                                 .variableAmount(voucher.getVariableAmount())
                                 .endedAt(voucher.getEndedAt())
-                                .build()))
+                                .build()
+                        )
+                )
                 .collectList();
     }
 
-    private Mono<RetrieveAllTransactionResponse> fetchTransactionResponse(Transaction transaction) {
+    private Mono<RetrieveTransactionResponse> fetchTransactionResponse(Transaction transaction) {
         return eventRepository
                 .findById(transaction.getEventId())
                 .flatMap(event -> Mono
-                        .just(RetrieveAllTransactionResponse.builder()
-                        .eventId(event.getId()).transactionId(transaction.getId())
-                        .eventName(event.getName())
-                        .time(event.getTime())
-                        .build()));
+                        .just(RetrieveTransactionResponse
+                                .builder()
+                                .eventId(event.getId()).transactionId(transaction.getId())
+                                .eventName(event.getName())
+                                .time(event.getTime())
+                                .build())
+                );
     }
 
-    private Mono<RetrieveAllFeedbackResponse> fetchFeedbackResponse(Account claimerAccount, Transaction transaction) {
-        return Mono.zip(
-                eventRepository.findById(transaction.getEventId()),
-                checkIfReviewed(claimerAccount, transaction)
-                        .defaultIfEmpty(RetrieveFeedbackResponse.builder().build())
-        ).map(tuple -> mapToFeedbackResponse(transaction, tuple.getT1(), tuple.getT2()));
+    private Mono<RetrieveFeedbackResponse> fetchFeedbackResponse(Account claimerAccount, Transaction transaction) {
+        return Mono
+                .zip(
+                        eventRepository.findById(transaction.getEventId()),
+                        checkIfReviewed(claimerAccount, transaction)
+                                .defaultIfEmpty(Feedback
+                                        .builder()
+                                        .build()
+                                )
+                ).map(tuple -> mapToFeedbackResponse(transaction, tuple.getT1(), tuple.getT2()));
     }
 
-    private Mono<RetrieveFeedbackResponse> checkIfReviewed(Account claimerAccount, Transaction transaction) {
-        return feedbackRepository.findByTransactionIdAndAccountId(transaction.getId(), claimerAccount.getId())
-                .map(feedback -> RetrieveFeedbackResponse.builder()
-                        .id(feedback.getId())
-                        .rating(feedback.getRating())
-                        .review(feedback.getReview())
-                        .build());
+    private Mono<Feedback> checkIfReviewed(Account claimerAccount, Transaction transaction) {
+        return feedbackRepository.findByTransactionIdAndAccountId(transaction.getId(), claimerAccount.getId());
     }
 
-    private RetrieveAllFeedbackResponse mapToFeedbackResponse(
+    private RetrieveFeedbackResponse mapToFeedbackResponse(
             Transaction transaction,
             Event event,
-            RetrieveFeedbackResponse feedback) {
-        return RetrieveAllFeedbackResponse.builder()
+            Feedback feedback) {
+        return RetrieveFeedbackResponse
+                .builder()
                 .transactionId(transaction.getId())
                 .eventId(event.getId())
                 .eventName(event.getName())

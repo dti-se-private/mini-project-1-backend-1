@@ -245,7 +245,7 @@ public class TestConfiguration {
                     .stream()
                     .filter(t -> t.getAccountId().equals(account.getId())).findFirst().orElse(null);
 
-            if(transaction != null) {
+            if (transaction != null) {
                 Feedback feedback = Feedback
                         .builder()
                         .id(UUID.randomUUID())

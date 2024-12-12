@@ -67,12 +67,8 @@ public class EventCustomRepository {
                         .collectList()
                         .map(event::setEventVouchers)
                 )
-                .flatMap(event -> retrieveEventParticipantsByEventIds(List.of(event.getId()))
-                        .collectList()
-                        .map(participants -> event
-                                .setEventParticipants(participants)
-                                .setParticipantCount(participants.size())
-                        )
+                .flatMap(event -> retrieveEventParticipantCountByEventIds(List.of(event.getId()))
+                        .map(event::setParticipantCount)
                 );
     }
 
@@ -111,12 +107,8 @@ public class EventCustomRepository {
                         .collectList()
                         .map(event::setEventVouchers)
                 )
-                .flatMap(event -> retrieveEventParticipantsByEventIds(List.of(event.getId()))
-                        .collectList()
-                        .map(participants -> event
-                                .setEventParticipants(participants)
-                                .setParticipantCount(participants.size())
-                        )
+                .flatMap(event -> retrieveEventParticipantCountByEventIds(List.of(event.getId()))
+                        .map(event::setParticipantCount)
                 )
                 .single();
     }
@@ -160,12 +152,8 @@ public class EventCustomRepository {
                         .collectList()
                         .map(event::setEventVouchers)
                 )
-                .flatMap(event -> retrieveEventParticipantsByEventIds(List.of(event.getId()))
-                        .collectList()
-                        .map(participants -> event
-                                .setEventParticipants(participants)
-                                .setParticipantCount(participants.size())
-                        )
+                .flatMap(event -> retrieveEventParticipantCountByEventIds(List.of(event.getId()))
+                        .map(event::setParticipantCount)
                 );
     }
 
@@ -261,7 +249,27 @@ public class EventCustomRepository {
                 .all();
     }
 
-    public Flux<RetrieveEventParticipantResponse> retrieveEventParticipantsByEventIds(List<UUID> eventIds) {
+    public Mono<Integer> retrieveEventParticipantCountByEventIds(List<UUID> eventIds) {
+        return oneTemplate
+                .getDatabaseClient()
+                .sql("""
+                        SELECT COUNT(*) from (
+                            SELECT DISTINCT (a.id, t.id, et.id)
+                            FROM account a
+                            INNER JOIN transaction t ON t.account_id = a.id
+                            INNER JOIN event_ticket et ON et.event_id = t.event_id
+                            INNER JOIN event_ticket_field etf ON etf.event_ticket_id = et.id
+                            INNER JOIN transaction_ticket_field ttf ON ttf.transaction_id = t.id
+                            WHERE t.event_id IN (:eventIds)
+                            GROUP BY a.id, t.id, et.id
+                        ) as sq_1;
+                        """)
+                .bind("eventIds", eventIds)
+                .map((row, rowMetadata) -> row.get("count", Integer.class))
+                .one();
+    }
+
+    public Flux<RetrieveEventParticipantResponse> retrieveEventParticipantCountByEventIds(List<UUID> eventIds, Integer page, Integer size) {
         return oneTemplate
                 .getDatabaseClient()
                 .sql("""
@@ -275,9 +283,13 @@ public class EventCustomRepository {
                         INNER JOIN event_ticket_field etf ON etf.event_ticket_id = et.id
                         INNER JOIN transaction_ticket_field ttf ON ttf.transaction_id = t.id
                         WHERE t.event_id IN (:eventIds)
-                        GROUP BY a.id, t.id, et.id;
+                        GROUP BY a.id, t.id, et.id
+                        LIMIT :limit
+                        OFFSET :offset;
                         """)
                 .bind("eventIds", eventIds)
+                .bind("limit", size)
+                .bind("offset", page * size)
                 .map((row, rowMetadata) -> RetrieveEventParticipantResponse
                         .builder()
                         .accountId(row.get("account_id", UUID.class))

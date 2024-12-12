@@ -17,20 +17,21 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping(value = "/participant")
+@RequestMapping(value = "/participants")
 public class ParticipantRest {
     @Autowired
     BasicParticipantUseCase basicProfileUseCase;
 
     @GetMapping("/points")
-    public Mono<ResponseEntity<ResponseBody<List<RetrieveAllPointResponse>>>> retrievePoints(
+    public Mono<ResponseEntity<ResponseBody<List<RetrievePointResponse>>>> retrievePoints(
             @AuthenticationPrincipal Account authenticatedAccount,
             @RequestParam(defaultValue = "0") Integer page,
             @RequestParam(defaultValue = "10") Integer size
     ) {
-        return basicProfileUseCase.retrievePoints(authenticatedAccount, page, size)
+        return basicProfileUseCase
+                .retrievePoints(authenticatedAccount, page, size)
                 .map(points -> ResponseBody
-                        .<List<RetrieveAllPointResponse>>builder()
+                        .<List<RetrievePointResponse>>builder()
                         .message("Points retrieved.")
                         .data(points)
                         .build()
@@ -38,7 +39,7 @@ public class ParticipantRest {
                 )
                 .onErrorResume(e -> Mono
                         .just(ResponseBody
-                                .<List<RetrieveAllPointResponse>>builder()
+                                .<List<RetrievePointResponse>>builder()
                                 .message("Internal server error.")
                                 .exception(e)
                                 .build()
@@ -48,14 +49,15 @@ public class ParticipantRest {
     }
 
     @GetMapping("/vouchers")
-    public Mono<ResponseEntity<ResponseBody<List<RetrieveAllVoucherResponse>>>> retrieveVouchers(
+    public Mono<ResponseEntity<ResponseBody<List<RetrieveVoucherResponse>>>> retrieveVouchers(
             @AuthenticationPrincipal Account authenticatedAccount,
             @RequestParam(defaultValue = "0") Integer page,
             @RequestParam(defaultValue = "10") Integer size
     ) {
-        return basicProfileUseCase.retrieveVouchers(authenticatedAccount, page, size)
+        return basicProfileUseCase
+                .retrieveVouchers(authenticatedAccount, page, size)
                 .map(vouchers -> ResponseBody
-                        .<List<RetrieveAllVoucherResponse>>builder()
+                        .<List<RetrieveVoucherResponse>>builder()
                         .message("Vouchers retrieved.")
                         .data(vouchers)
                         .build()
@@ -63,7 +65,7 @@ public class ParticipantRest {
                 )
                 .onErrorResume(e -> Mono
                         .just(ResponseBody
-                                .<List<RetrieveAllVoucherResponse>>builder()
+                                .<List<RetrieveVoucherResponse>>builder()
                                 .message("Internal server error.")
                                 .exception(e)
                                 .build()
@@ -73,14 +75,15 @@ public class ParticipantRest {
     }
 
     @GetMapping("/feedbacks")
-    public Mono<ResponseEntity<ResponseBody<List<RetrieveAllFeedbackResponse>>>> retrieveFeedbacks(
+    public Mono<ResponseEntity<ResponseBody<List<RetrieveFeedbackResponse>>>> retrieveFeedbacks(
             @AuthenticationPrincipal Account authenticatedAccount,
             @RequestParam(defaultValue = "0") Integer page,
             @RequestParam(defaultValue = "10") Integer size
     ) {
-        return basicProfileUseCase.retrieveFeedbacks(authenticatedAccount, page, size)
+        return basicProfileUseCase
+                .retrieveFeedbacks(authenticatedAccount, page, size)
                 .map(feedbacks -> ResponseBody
-                        .<List<RetrieveAllFeedbackResponse>>builder()
+                        .<List<RetrieveFeedbackResponse>>builder()
                         .message("Feedbacks retrieved.")
                         .data(feedbacks)
                         .build()
@@ -88,7 +91,7 @@ public class ParticipantRest {
                 )
                 .onErrorResume(e -> Mono
                         .just(ResponseBody
-                                .<List<RetrieveAllFeedbackResponse>>builder()
+                                .<List<RetrieveFeedbackResponse>>builder()
                                 .message("Internal server error.")
                                 .exception(e)
                                 .build()
@@ -103,7 +106,8 @@ public class ParticipantRest {
             @AuthenticationPrincipal Account authenticatedAccount,
             @RequestBody CreateFeedbackRequest request
     ) {
-        return basicProfileUseCase.createFeedback(authenticatedAccount, request)
+        return basicProfileUseCase
+                .createFeedback(authenticatedAccount, request)
                 .map(feedback -> ResponseBody
                         .<CreateFeedbackResponse>builder()
                         .message("Feedback created.")
@@ -126,7 +130,8 @@ public class ParticipantRest {
             @AuthenticationPrincipal Account authenticatedAccount,
             @PathVariable UUID id
     ) {
-        return basicProfileUseCase.deleteFeedback(authenticatedAccount, id)
+        return basicProfileUseCase
+                .deleteFeedback(authenticatedAccount, id)
                 .then(Mono.fromCallable(() -> ResponseBody
                         .<Void>builder()
                         .message("Feedback deleted.")
@@ -161,14 +166,15 @@ public class ParticipantRest {
     }
 
     @GetMapping("/transactions")
-    public Mono<ResponseEntity<ResponseBody<List<RetrieveAllTransactionResponse>>>> retrieveTransactions(
+    public Mono<ResponseEntity<ResponseBody<List<RetrieveTransactionResponse>>>> retrieveTransactions(
             @AuthenticationPrincipal Account authenticatedAccount,
             @RequestParam(defaultValue = "0") Integer page,
             @RequestParam(defaultValue = "10") Integer size
     ) {
-        return basicProfileUseCase.retrieveTransactions(authenticatedAccount, page, size)
+        return basicProfileUseCase
+                .retrieveTransactions(authenticatedAccount, page, size)
                 .map(transactions -> ResponseBody
-                        .<List<RetrieveAllTransactionResponse>>builder()
+                        .<List<RetrieveTransactionResponse>>builder()
                         .message("Transactions retrieved.")
                         .data(transactions)
                         .build()
@@ -176,7 +182,7 @@ public class ParticipantRest {
                 )
                 .onErrorResume(e -> Mono
                         .just(ResponseBody
-                                .<List<RetrieveAllTransactionResponse>>builder()
+                                .<List<RetrieveTransactionResponse>>builder()
                                 .message("Internal server error.")
                                 .exception(e)
                                 .build()
@@ -190,7 +196,8 @@ public class ParticipantRest {
             @AuthenticationPrincipal Account authenticatedAccount,
             @PathVariable UUID id
     ) {
-        return basicProfileUseCase.getTransactionDetail(authenticatedAccount, id)
+        return basicProfileUseCase
+                .getTransactionDetail(authenticatedAccount, id)
                 .map(transaction -> ResponseBody
                         .<TransactionDetailResponse>builder()
                         .message("Transaction Detail retrieved.")
@@ -209,13 +216,14 @@ public class ParticipantRest {
                 );
     }
 
-    @GetMapping("/transactions/{id}/{eventID}")
+    @GetMapping("/transactions/{transactionId}/events/{eventId}")
     public Mono<ResponseEntity<ResponseBody<TransactionEventDetailResponse>>> getTransactionDetail(
             @AuthenticationPrincipal Account authenticatedAccount,
-            @PathVariable UUID id,
-            @PathVariable UUID eventID
+            @PathVariable UUID transactionId,
+            @PathVariable UUID eventId
     ) {
-        return basicProfileUseCase.getTransactionEventDetail(authenticatedAccount, id, eventID)
+        return basicProfileUseCase
+                .getTransactionEventDetail(authenticatedAccount, transactionId, eventId)
                 .map(transaction -> ResponseBody
                         .<TransactionEventDetailResponse>builder()
                         .message("Transaction Detail retrieved.")

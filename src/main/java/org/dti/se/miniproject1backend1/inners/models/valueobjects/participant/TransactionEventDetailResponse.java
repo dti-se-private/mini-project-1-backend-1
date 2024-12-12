@@ -27,5 +27,5 @@ public class TransactionEventDetailResponse extends Model {
     private String location;
     private String category;
     private List<RetrieveEventTicketResponse> eventTickets;
-    private List<RetrieveEventVoucherResponse> eventVouchers ;
+    private List<RetrieveEventVoucherResponse> eventVouchers;
 }

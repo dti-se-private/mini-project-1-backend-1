@@ -36,11 +36,11 @@ public class ParticipantRestTest extends TestConfiguration {
 
         webTestClient
                 .get()
-                .uri("/participant/points?page=0&size=10")
+                .uri("/participants/points?page=0&size=10")
                 .exchange()
                 .expectStatus()
                 .isOk()
-                .expectBody(new ParameterizedTypeReference<ResponseBody<List<RetrieveAllPointResponse>>>() {
+                .expectBody(new ParameterizedTypeReference<ResponseBody<List<RetrievePointResponse>>>() {
                 })
                 .value(body -> {
                     assert body != null;
@@ -68,11 +68,11 @@ public class ParticipantRestTest extends TestConfiguration {
 
         webTestClient
                 .get()
-                .uri("/participant/vouchers?page=0&size=10")
+                .uri("/participants/vouchers?page=0&size=10")
                 .exchange()
                 .expectStatus()
                 .isOk()
-                .expectBody(new ParameterizedTypeReference<ResponseBody<List<RetrieveAllVoucherResponse>>>() {
+                .expectBody(new ParameterizedTypeReference<ResponseBody<List<RetrieveVoucherResponse>>>() {
                 })
                 .value(body -> {
                     assert body != null;
@@ -103,7 +103,7 @@ public class ParticipantRestTest extends TestConfiguration {
 
         webTestClient
                 .post()
-                .uri("/participant/feedbacks")
+                .uri("/participants/feedbacks")
                 .bodyValue(createFeedbackRequest)
                 .exchange()
                 .expectStatus()
@@ -118,10 +118,10 @@ public class ParticipantRestTest extends TestConfiguration {
                     assert body.getData().getReview().equals(createFeedbackRequest.getReview());
                     assert Objects.equals(body.getData().getRating(), createFeedbackRequest.getRating());
                     fakeFeedbacks.add(Feedback.builder()
-                                    .id(body.getData().getId())
-                                    .transactionId(body.getData().getTransactionId())
-                                    .review(body.getData().getReview())
-                                    .rating(body.getData().getRating())
+                            .id(body.getData().getId())
+                            .transactionId(body.getData().getTransactionId())
+                            .review(body.getData().getReview())
+                            .rating(body.getData().getRating())
                             .build());
                 });
     }
@@ -134,11 +134,11 @@ public class ParticipantRestTest extends TestConfiguration {
 
         webTestClient
                 .get()
-                .uri("/participant/feedbacks?page=0&size=10")
+                .uri("/participants/feedbacks?page=0&size=10")
                 .exchange()
                 .expectStatus()
                 .isOk()
-                .expectBody(new ParameterizedTypeReference<ResponseBody<List<RetrieveAllFeedbackResponse>>>() {
+                .expectBody(new ParameterizedTypeReference<ResponseBody<List<RetrieveFeedbackResponse>>>() {
                 })
                 .value(body -> {
                     assert body != null;
@@ -160,7 +160,7 @@ public class ParticipantRestTest extends TestConfiguration {
 
         webTestClient
                 .delete()
-                .uri("/participant/feedbacks/{id}", feedback != null ? feedback.getId() : UUID.randomUUID())
+                .uri("/participants/feedbacks/{id}", feedback != null ? feedback.getId() : UUID.randomUUID())
                 .exchange()
                 .expectStatus()
                 .isOk();
@@ -174,11 +174,11 @@ public class ParticipantRestTest extends TestConfiguration {
 
         webTestClient
                 .get()
-                .uri("/participant/transactions?page=0&size=10")
+                .uri("/participants/transactions?page=0&size=10")
                 .exchange()
                 .expectStatus()
                 .isOk()
-                .expectBody(new ParameterizedTypeReference<ResponseBody<List<RetrieveAllTransactionResponse>>>() {
+                .expectBody(new ParameterizedTypeReference<ResponseBody<List<RetrieveTransactionResponse>>>() {
                 })
                 .value(body -> {
                     assert body != null;
@@ -207,7 +207,7 @@ public class ParticipantRestTest extends TestConfiguration {
 
         webTestClient
                 .get()
-                .uri("/participant/transactions/{id}", transaction != null ? transaction.getId() : UUID.randomUUID())
+                .uri("/participants/transactions/{id}", transaction != null ? transaction.getId() : UUID.randomUUID())
                 .exchange()
                 .expectStatus()
                 .isOk()
@@ -237,7 +237,7 @@ public class ParticipantRestTest extends TestConfiguration {
 
         webTestClient
                 .get()
-                .uri("/participant/transactions/{id}/{eventID}",
+                .uri("/participants/transactions/{id}/events/{eventID}",
                         transaction != null ? transaction.getId() : UUID.randomUUID(),
                         Objects.requireNonNull(event).getId())
                 .exchange()

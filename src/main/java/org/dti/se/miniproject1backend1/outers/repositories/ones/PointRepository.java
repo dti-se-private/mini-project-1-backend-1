@@ -12,5 +12,5 @@ import java.util.UUID;
 public interface PointRepository extends R2dbcRepository<Point, UUID> {
     Flux<Point> findAllByAccountId(UUID id);
 
-    Flux<Point> findByAccountId(UUID accountId, Pageable pageable);
+    Flux<Point> findAllByAccountId(UUID id, Pageable pageable);
 }

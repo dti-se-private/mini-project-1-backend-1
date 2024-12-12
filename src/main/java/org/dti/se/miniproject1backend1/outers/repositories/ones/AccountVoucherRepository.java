@@ -10,5 +10,5 @@ import java.util.UUID;
 
 @Repository
 public interface AccountVoucherRepository extends R2dbcRepository<AccountVoucher, UUID> {
-    Flux<AccountVoucher> findByAccountId(UUID accountId, Pageable pageable);
+    Flux<AccountVoucher> findAllByAccountId(UUID accountId, Pageable pageable);
 }

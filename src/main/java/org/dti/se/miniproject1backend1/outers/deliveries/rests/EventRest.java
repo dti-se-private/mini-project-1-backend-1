@@ -26,28 +26,30 @@ public class EventRest {
             @RequestParam(defaultValue = "") List<String> filters,
             @RequestParam(defaultValue = "") String search
     ) {
-        return basicEventUseCase.retrieveEvents(page, size, filters, search)
+        return basicEventUseCase
+                .retrieveEvents(page, size, filters, search)
                 .map(eventList -> ResponseBody
                         .<List<RetrieveEventResponse>>builder()
                         .message("Retrieve many events succeed.")
                         .data(eventList)
                         .build()
                         .toEntity(HttpStatus.OK)
+                )
+                .onErrorResume(e -> Mono
+                        .just(ResponseBody
+                                .<List<RetrieveEventResponse>>builder()
+                                .message("Internal server error.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+                        )
                 );
-//                .onErrorResume(e -> Mono
-//                        .just(ResponseBody
-//                                .<List<RetrieveEventResponse>>builder()
-//                                .message("Internal server error.")
-//                                .exception(e)
-//                                .build()
-//                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
-//                        )
-//                );
     }
 
     @GetMapping("/{id}")
     public Mono<ResponseEntity<ResponseBody<RetrieveEventResponse>>> retrieveEventById(@PathVariable UUID id) {
-        return basicEventUseCase.retrieveEventById(id)
+        return basicEventUseCase
+                .retrieveEventById(id)
                 .map(event -> ResponseBody
                         .<RetrieveEventResponse>builder()
                         .message("Retrieve one event by id succeed.")
@@ -63,15 +65,15 @@ public class EventRest {
                                 .build()
                                 .toEntity(HttpStatus.NOT_FOUND)
                         )
+                )
+                .onErrorResume(e -> Mono
+                        .just(ResponseBody
+                                .<RetrieveEventResponse>builder()
+                                .message("Internal server error.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+                        )
                 );
-//                .onErrorResume(e -> Mono
-//                        .just(ResponseBody
-//                                .<RetrieveEventResponse>builder()
-//                                .message("Internal server error.")
-//                                .exception(e)
-//                                .build()
-//                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
-//                        )
-//                );
     }
 }

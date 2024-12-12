@@ -13,10 +13,9 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Accessors(chain = true)
-public class RetrieveAllFeedbackResponse extends Model {
+public class RetrieveTransactionResponse extends Model {
     private UUID transactionId;
     private UUID eventId;
     private String eventName;
     private OffsetDateTime time;
-    private RetrieveFeedbackResponse feedback;
 }
