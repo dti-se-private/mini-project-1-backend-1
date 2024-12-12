@@ -54,6 +54,8 @@ public class TestConfiguration {
     protected TransactionVoucherRepository transactionVoucherRepository;
     @Autowired
     protected VoucherRepository voucherRepository;
+    @Autowired
+    protected FeedbackRepository feedbackRepository;
 
     @Autowired
     protected SecurityConfiguration securityConfiguration;
@@ -73,6 +75,7 @@ public class TestConfiguration {
     protected ArrayList<TransactionTicketField> fakeTransactionTicketFields = new ArrayList<>();
     protected ArrayList<TransactionVoucher> fakeTransactionTicketVouchers = new ArrayList<>();
     protected ArrayList<Voucher> fakeVouchers = new ArrayList<>();
+    protected ArrayList<Feedback> fakeFeedbacks = new ArrayList<>();
 
     protected String rawPassword = String.format("password-%s", UUID.randomUUID());
     protected Account authenticatedAccount;
@@ -235,6 +238,26 @@ public class TestConfiguration {
         StepVerifier.create(transactionRepository.saveAll(fakeTransactions)).expectNextCount(fakeTransactions.size()).verifyComplete();
         StepVerifier.create(transactionTicketFieldRepository.saveAll(fakeTransactionTicketFields)).expectNextCount(fakeTransactionTicketFields.size()).verifyComplete();
         StepVerifier.create(transactionVoucherRepository.saveAll(fakeTransactionTicketVouchers)).expectNextCount(fakeTransactionTicketVouchers.size()).verifyComplete();
+
+        // Feedback
+        for (Account account : fakeAccounts) {
+            Transaction transaction = fakeTransactions
+                    .stream()
+                    .filter(t -> t.getAccountId().equals(account.getId())).findFirst().orElse(null);
+
+            if (transaction != null) {
+                Feedback feedback = Feedback
+                        .builder()
+                        .id(UUID.randomUUID())
+                        .transactionId(transaction.getId())
+                        .accountId(transaction.getAccountId())
+                        .rating(1 + (int) (Math.random() * 5))
+                        .review(String.format("review-%s", UUID.randomUUID()))
+                        .build();
+                fakeFeedbacks.add(feedback);
+            }
+        }
+        StepVerifier.create(feedbackRepository.saveAll(fakeFeedbacks)).expectNextCount(fakeFeedbacks.size()).verifyComplete();
     }
 
 

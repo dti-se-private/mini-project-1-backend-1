@@ -18,7 +18,7 @@ import java.util.UUID;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class OrganizerEventRestTest extends TestConfiguration {
+public class OrganizerRestTest extends TestConfiguration {
     @BeforeAll
     public void beforeAll() {
         configure();
@@ -82,7 +82,7 @@ public class OrganizerEventRestTest extends TestConfiguration {
 
         webTestClient
                 .post()
-                .uri("/organizer/events")
+                .uri("/organizers/events")
                 .bodyValue(createEventRequest)
                 .exchange()
                 .expectStatus()
@@ -118,7 +118,7 @@ public class OrganizerEventRestTest extends TestConfiguration {
 
         webTestClient
                 .get()
-                .uri("/organizer/events?page=0&size={size}", accountEvents.size())
+                .uri("/organizers/events?page=0&size={size}", accountEvents.size())
                 .exchange()
                 .expectStatus()
                 .isOk()
@@ -146,7 +146,7 @@ public class OrganizerEventRestTest extends TestConfiguration {
 
         webTestClient
                 .get()
-                .uri("/organizer/events/{id}", accountEvent.getId())
+                .uri("/organizers/events/{id}", accountEvent.getId())
                 .exchange()
                 .expectStatus()
                 .isOk()
@@ -175,7 +175,7 @@ public class OrganizerEventRestTest extends TestConfiguration {
 
         webTestClient
                 .get()
-                .uri("/organizer/events/{id}", accountEvent.getId())
+                .uri("/organizers/events/{id}", accountEvent.getId())
                 .exchange()
                 .expectStatus()
                 .isOk()

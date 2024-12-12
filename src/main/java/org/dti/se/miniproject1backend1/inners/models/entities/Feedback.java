@@ -17,13 +17,14 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Accessors(chain = true)
-@Table(name = "transaction_point")
-public class TransactionPoint extends Model implements Persistable<UUID> {
+@Table(name = "feedback")
+public class Feedback extends Model implements Persistable<UUID> {
     @Id
     private UUID id;
     private UUID transactionId;
-    private UUID pointId;
-    private Double fixedAmount;
+    private UUID accountId;
+    private Integer rating;
+    private String review;
 
     @Transient
     @Builder.Default

@@ -4,10 +4,12 @@ import org.dti.se.miniproject1backend1.inners.models.entities.Account;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.ResponseBody;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.CreateEventRequest;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.PatchEventRequest;
+import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveEventParticipantResponse;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.events.RetrieveEventResponse;
 import org.dti.se.miniproject1backend1.inners.usecases.events.OrganizerEventUseCase;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountNotFoundException;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountUnAuthorizedException;
+import org.dti.se.miniproject1backend1.outers.exceptions.events.EventNotFoundException;
 import org.dti.se.miniproject1backend1.outers.exceptions.events.VoucherCodeExistsException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -20,12 +22,56 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping(value = "/organizer/events")
-public class OrganizerEventRest {
+@RequestMapping(value = "/organizers")
+public class OrganizerRest {
     @Autowired
     OrganizerEventUseCase organizerEventUseCase;
 
-    @GetMapping
+    @GetMapping("/events/{id}/participants")
+    public Mono<ResponseEntity<ResponseBody<List<RetrieveEventParticipantResponse>>>> retrieveEventParticipants(
+            @AuthenticationPrincipal Account authenticatedAccount,
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "10") Integer size
+    ) {
+        return organizerEventUseCase.retrieveEventParticipants(authenticatedAccount, id, page, size)
+                .map(participants -> ResponseBody
+                        .<List<RetrieveEventParticipantResponse>>builder()
+                        .message("Retrieve many events by organizer succeed.")
+                        .data(participants)
+                        .build()
+                        .toEntity(HttpStatus.OK)
+                )
+                .onErrorResume(EventNotFoundException.class, e -> Mono
+                        .just(ResponseBody
+                                .<List<RetrieveEventParticipantResponse>>builder()
+                                .message("Account not found.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.NOT_FOUND)
+                        )
+                )
+                .onErrorResume(AccountUnAuthorizedException.class, e -> Mono
+                        .just(ResponseBody
+                                .<List<RetrieveEventParticipantResponse>>builder()
+                                .message("Retrieve event by organizer is unauthorized.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.UNAUTHORIZED)
+                        )
+                )
+                .onErrorResume(e -> Mono
+                        .just(ResponseBody
+                                .<List<RetrieveEventParticipantResponse>>builder()
+                                .message("Internal server error.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+                        )
+                );
+    }
+
+    @GetMapping("/events")
     public Mono<ResponseEntity<ResponseBody<List<RetrieveEventResponse>>>> retrieveEvents(
             @AuthenticationPrincipal Account authenticatedAccount,
             @RequestParam(defaultValue = "0") Integer page,
@@ -51,7 +97,7 @@ public class OrganizerEventRest {
                 );
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/events/{id}")
     public Mono<ResponseEntity<ResponseBody<RetrieveEventResponse>>> retrieveEvent(
             @AuthenticationPrincipal Account authenticatedAccount,
             @PathVariable UUID id
@@ -85,7 +131,7 @@ public class OrganizerEventRest {
                 );
     }
 
-    @PostMapping("")
+    @PostMapping("/events")
     public Mono<ResponseEntity<ResponseBody<RetrieveEventResponse>>> createEvent(
             @AuthenticationPrincipal Account authenticatedAccount,
             @RequestBody CreateEventRequest request
@@ -128,7 +174,7 @@ public class OrganizerEventRest {
                 );
     }
 
-    @PatchMapping("/{id}")
+    @PatchMapping("/events/{id}")
     public Mono<ResponseEntity<ResponseBody<RetrieveEventResponse>>> patchEvent(
             @AuthenticationPrincipal Account authenticatedAccount,
             @RequestBody PatchEventRequest request,
@@ -163,7 +209,7 @@ public class OrganizerEventRest {
                 );
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/events/{id}")
     public Mono<ResponseEntity<ResponseBody<Void>>> deleteEvent(
             @AuthenticationPrincipal Account authenticatedAccount,
             @PathVariable UUID id

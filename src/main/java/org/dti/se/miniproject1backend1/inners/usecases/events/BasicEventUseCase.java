@@ -25,7 +25,6 @@ public class BasicEventUseCase {
                 })
                 .flatMap(queryFilters -> eventCustomRepository
                         .retrieveEvents(page, size, queryFilters, search)
-                        .map(event -> event.setEventParticipants(null))
                         .collectList()
                 );
     }
@@ -33,7 +32,6 @@ public class BasicEventUseCase {
     public Mono<RetrieveEventResponse> retrieveEventById(UUID id) {
         return eventCustomRepository
                 .retrieveEventById(id)
-                .map(event -> event.setEventParticipants(null))
                 .switchIfEmpty(Mono.error(new EventNotFoundException()));
     }
 }
