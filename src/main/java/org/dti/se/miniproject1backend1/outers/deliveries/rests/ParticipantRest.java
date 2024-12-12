@@ -5,6 +5,7 @@ import org.dti.se.miniproject1backend1.inners.models.valueobjects.ResponseBody;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.participant.*;
 import org.dti.se.miniproject1backend1.inners.usecases.participant.BasicParticipantUseCase;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountUnAuthorizedException;
+import org.dti.se.miniproject1backend1.outers.exceptions.events.EventNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -136,6 +137,14 @@ public class ParticipantRest {
                         .just(ResponseBody
                                 .<Void>builder()
                                 .message("Feedback does not belong to the given account.")
+                                .build()
+                                .toEntity(HttpStatus.CONFLICT)
+                        )
+                )
+                .onErrorResume(EventNotFoundException.class, e -> Mono
+                        .just(ResponseBody
+                                .<Void>builder()
+                                .message("Event not found.")
                                 .build()
                                 .toEntity(HttpStatus.CONFLICT)
                         )
