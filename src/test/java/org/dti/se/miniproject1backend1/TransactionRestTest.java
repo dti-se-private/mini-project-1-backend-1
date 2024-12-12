@@ -172,7 +172,7 @@ public class TransactionRestTest extends TestConfiguration {
                 })
                 .value(body -> {
                     assert body != null;
-                    assert body.getMessage().equals("Checkout succeed.");
+                    assert body.getMessage().equals("Try Checkout succeed.");
                     assert body.getData() != null;
                     assert body.getData().getId() != null;
                     assert body.getData().getEventId().equals(event.getId());

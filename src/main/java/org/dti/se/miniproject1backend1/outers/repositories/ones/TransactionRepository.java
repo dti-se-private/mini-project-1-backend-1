@@ -10,7 +10,7 @@ import reactor.core.publisher.Flux;
 import java.util.UUID;
 
 @Repository
-public interface TransactionRepository extends R2dbcRepository<Transaction, Long> {
+public interface TransactionRepository extends R2dbcRepository<Transaction, UUID> {
     Mono<Integer> countByEventId(UUID eventId);
 
     Mono<Void> deleteAllByEventId(UUID eventId);

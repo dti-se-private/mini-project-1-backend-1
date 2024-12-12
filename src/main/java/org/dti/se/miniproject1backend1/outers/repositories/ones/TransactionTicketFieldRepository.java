@@ -4,6 +4,8 @@ import org.dti.se.miniproject1backend1.inners.models.entities.TransactionTicketF
 import org.springframework.data.r2dbc.repository.R2dbcRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.UUID;
+
 @Repository
-public interface TransactionTicketFieldRepository extends R2dbcRepository<TransactionTicketField, Long> {
+public interface TransactionTicketFieldRepository extends R2dbcRepository<TransactionTicketField, UUID> {
 }

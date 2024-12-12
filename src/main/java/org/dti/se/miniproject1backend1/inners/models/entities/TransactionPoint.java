@@ -21,9 +21,9 @@ import java.util.UUID;
 public class TransactionPoint extends Model implements Persistable<UUID> {
     @Id
     private UUID id;
-    private UUID pointId;
     private UUID transactionId;
-    private Double fixedAmount;
+    private UUID pointId;
+    private Double amount;
 
     @Transient
     @Builder.Default
