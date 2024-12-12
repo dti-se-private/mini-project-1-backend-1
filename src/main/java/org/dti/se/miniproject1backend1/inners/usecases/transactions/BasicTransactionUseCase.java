@@ -146,7 +146,7 @@ public class BasicTransactionUseCase {
                                     .id(UUID.randomUUID())
                                     .transactionId(null)
                                     .pointId(point.getId())
-                                    .amount(currentPoint)
+                                    .fixedAmount(currentPoint)
                                     .build()
                             );
                             point.setFixedAmount(point.getFixedAmount() - currentPoint);

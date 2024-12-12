@@ -23,7 +23,7 @@ public class TransactionPoint extends Model implements Persistable<UUID> {
     private UUID id;
     private UUID transactionId;
     private UUID pointId;
-    private Double amount;
+    private Double fixedAmount;
 
     @Transient
     @Builder.Default
