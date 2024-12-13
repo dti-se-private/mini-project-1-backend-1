@@ -24,9 +24,9 @@ public class TransactionWebFilterImpl implements WebFilter {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         return transactionalOperator
-                .execute(action -> chain
+                .execute(transaction -> chain
                         .filter(exchange)
-                        .contextWrite(context -> context.put(WebHolder.TRANSACTION_CONTEXT_KEY, action))
+                        .contextWrite(context -> context.put(WebHolder.TRANSACTION_CONTEXT_KEY, transaction))
                 )
                 .retryWhen(Retry
                         .backoff(10, Duration.ofMillis(100))

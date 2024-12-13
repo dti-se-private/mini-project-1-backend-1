@@ -17,4 +17,5 @@ public interface AccountRepository extends R2dbcRepository<Account, UUID> {
 
     Mono<Account> findAccountByReferralCode(String referralCode);
 
+    Mono<Void> deleteByEmail(String email);
 }

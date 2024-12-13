@@ -5,6 +5,8 @@ import org.dti.se.miniproject1backend1.inners.models.valueobjects.ResponseBody;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.transactions.TransactionCheckoutRequest;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.transactions.TransactionCheckoutResponse;
 import org.dti.se.miniproject1backend1.inners.usecases.transactions.BasicTransactionUseCase;
+import org.dti.se.miniproject1backend1.outers.exceptions.events.VoucherNotFoundException;
+import org.dti.se.miniproject1backend1.outers.exceptions.transactions.PointInsufficientException;
 import org.dti.se.miniproject1backend1.outers.exceptions.transactions.TicketSlotInsufficientException;
 import org.dti.se.miniproject1backend1.outers.exceptions.transactions.VoucherQuantityInsufficientException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +43,24 @@ public class TransactionRest {
                         .just(ResponseBody
                                 .<TransactionCheckoutResponse>builder()
                                 .message("Ticket slot is insufficient.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.BAD_REQUEST)
+                        )
+                )
+                .onErrorResume(PointInsufficientException.class, e -> Mono
+                        .just(ResponseBody
+                                .<TransactionCheckoutResponse>builder()
+                                .message("Point is insufficient.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.BAD_REQUEST)
+                        )
+                )
+                .onErrorResume(VoucherNotFoundException.class, e -> Mono
+                        .just(ResponseBody
+                                .<TransactionCheckoutResponse>builder()
+                                .message("Voucher is not found.")
                                 .exception(e)
                                 .build()
                                 .toEntity(HttpStatus.BAD_REQUEST)
@@ -84,6 +104,24 @@ public class TransactionRest {
                         .just(ResponseBody
                                 .<TransactionCheckoutResponse>builder()
                                 .message("Ticket slot is insufficient.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.BAD_REQUEST)
+                        )
+                )
+                .onErrorResume(PointInsufficientException.class, e -> Mono
+                        .just(ResponseBody
+                                .<TransactionCheckoutResponse>builder()
+                                .message("Point is insufficient.")
+                                .exception(e)
+                                .build()
+                                .toEntity(HttpStatus.BAD_REQUEST)
+                        )
+                )
+                .onErrorResume(VoucherNotFoundException.class, e -> Mono
+                        .just(ResponseBody
+                                .<TransactionCheckoutResponse>builder()
+                                .message("Voucher is not found.")
                                 .exception(e)
                                 .build()
                                 .toEntity(HttpStatus.BAD_REQUEST)

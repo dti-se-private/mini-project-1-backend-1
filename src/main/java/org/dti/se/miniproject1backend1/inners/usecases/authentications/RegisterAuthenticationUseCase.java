@@ -4,10 +4,13 @@ import org.dti.se.miniproject1backend1.inners.models.entities.Account;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.authentications.RegisterByEmailAndPasswordRequest;
 import org.dti.se.miniproject1backend1.inners.usecases.referrals.BasicReferralUseCase;
 import org.dti.se.miniproject1backend1.outers.configurations.SecurityConfiguration;
+import org.dti.se.miniproject1backend1.outers.deliveries.holders.WebHolder;
 import org.dti.se.miniproject1backend1.outers.exceptions.accounts.AccountExistsException;
+import org.dti.se.miniproject1backend1.outers.exceptions.referrals.ReferralCodeNotFoundException;
 import org.dti.se.miniproject1backend1.outers.repositories.ones.AccountRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.ReactiveTransaction;
 import reactor.core.publisher.Mono;
 
 import java.util.UUID;
@@ -37,7 +40,8 @@ public class RegisterAuthenticationUseCase {
                         .dob(request.getDob())
                         .referralCode(UUID.randomUUID().toString())
                         .profileImageUrl(null)
-                        .build())
+                        .build()
+                )
                 .flatMap(accountRepository::save)
                 .flatMap(registeredAccount -> {
                     if (request.getReferralCode() != null) {
@@ -47,7 +51,13 @@ public class RegisterAuthenticationUseCase {
                     } else {
                         return Mono.just(registeredAccount);
                     }
-                });
+                })
+                .onErrorResume(ReferralCodeNotFoundException.class, e -> WebHolder
+                        .getTransaction()
+                        .doOnNext(ReactiveTransaction::setRollbackOnly)
+                        .then(accountRepository.deleteByEmail(request.getEmail()))
+                        .then(Mono.error(e))
+                );
     }
 
 }

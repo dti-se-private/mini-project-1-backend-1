@@ -6,6 +6,8 @@ import org.dti.se.miniproject1backend1.inners.models.valueobjects.transactions.T
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.transactions.TransactionTicketCheckoutResponse;
 import org.dti.se.miniproject1backend1.inners.models.valueobjects.transactions.TransactionTicketFieldCheckoutResponse;
 import org.dti.se.miniproject1backend1.outers.deliveries.holders.WebHolder;
+import org.dti.se.miniproject1backend1.outers.exceptions.events.VoucherNotFoundException;
+import org.dti.se.miniproject1backend1.outers.exceptions.transactions.PointInsufficientException;
 import org.dti.se.miniproject1backend1.outers.exceptions.transactions.TicketSlotInsufficientException;
 import org.dti.se.miniproject1backend1.outers.exceptions.transactions.VoucherQuantityInsufficientException;
 import org.dti.se.miniproject1backend1.outers.repositories.ones.*;
@@ -60,8 +62,8 @@ public class BasicTransactionUseCase {
 
 
     public Mono<TransactionCheckoutResponse> checkout(Account authenticatedAccount, TransactionCheckoutRequest request) {
-        return eventRepository.
-                findById(request.getEventId())
+        return eventRepository
+                .findById(request.getEventId())
                 .flatMap(event -> {
                     Mono<List<EventTicket>> eventTickets = eventTicketRepository.findAllByEventId(event.getId()).collectList();
                     return Mono.zip(Mono.just(event), eventTickets);
@@ -77,6 +79,13 @@ public class BasicTransactionUseCase {
                     );
                 })
                 .flatMap(tuple -> {
+                    if (tuple.getT2().getT2().size() != request.getVoucherCodes().size()) {
+                        return WebHolder
+                                .getTransaction()
+                                .doOnNext(TransactionExecution::setRollbackOnly)
+                                .then(Mono.error(new VoucherNotFoundException()));
+                    }
+
                     List<UUID> voucherIds = request
                             .getVoucherCodes()
                             .stream()
@@ -88,7 +97,8 @@ public class BasicTransactionUseCase {
                                     .map(Voucher::getId)
                             )
                             .toList();
-                    Mono<List<AccountVoucher>> accountVouchers = accountVoucherRepository.findAllById(voucherIds).collectList();
+
+                    Mono<List<AccountVoucher>> accountVouchers = accountVoucherRepository.findAllByVoucherIdIn(voucherIds).collectList();
                     return Mono.zip(
                             Mono.just(tuple.getT1()),
                             Mono.zip(Mono.just(tuple.getT2().getT1()), Mono.just(tuple.getT2().getT2()), accountVouchers)
@@ -132,7 +142,7 @@ public class BasicTransactionUseCase {
                             .map(voucher -> 1 - voucher.getVariableAmount())
                             .reduce(1.0, (a, b) -> a * b);
                     Double priceDeductedByPoint = Math.max(totalPrice - totalPoint, 0.0);
-                    Double usedPoint = totalPoint - (totalPrice - priceDeductedByPoint);
+                    Double usedPoint = totalPrice - priceDeductedByPoint;
                     Double priceDeductedByVoucher = Math.max(priceDeductedByPoint * totalVoucher, 0.0);
 
                     List<TransactionPoint> transactionPoints = new ArrayList<>();
@@ -152,6 +162,13 @@ public class BasicTransactionUseCase {
                             point.setFixedAmount(point.getFixedAmount() - currentPoint);
                         }
                         point.setIsNew(false);
+                    }
+
+                    if (usedPointRemaining > 0) {
+                        return WebHolder
+                                .getTransaction()
+                                .doOnNext(TransactionExecution::setRollbackOnly)
+                                .then(Mono.error(new PointInsufficientException()));
                     }
 
                     for (AccountVoucher accountVoucher : tuple.getT2().getT3()) {
@@ -292,11 +309,252 @@ public class BasicTransactionUseCase {
     }
 
     public Mono<TransactionCheckoutResponse> tryCheckout(Account authenticatedAccount, TransactionCheckoutRequest request) {
-        return checkout(authenticatedAccount, request)
-                .flatMap(transaction ->
-                        transactionRepository
-                                .deleteById(transaction.getId())
-                                .then(Mono.just(transaction))
+        return eventRepository
+                .findById(request.getEventId())
+                .flatMap(event -> {
+                    Mono<List<EventTicket>> eventTickets = eventTicketRepository.findAllByEventId(event.getId()).collectList();
+                    return Mono.zip(Mono.just(event), eventTickets);
+                })
+                .flatMap(tuple -> {
+                    List<UUID> eventTicketIds = tuple.getT2().stream().map(EventTicket::getId).toList();
+                    Mono<List<EventTicketField>> eventTicketFields = eventTicketFieldRepository.findAllByEventTicketIdIn(eventTicketIds).collectList();
+                    Mono<List<Point>> points = pointRepository.findAllByAccountId(authenticatedAccount.getId()).collectList();
+                    Mono<List<Voucher>> vouchers = voucherRepository.findAllByCodeIn(request.getVoucherCodes()).collectList();
+                    return Mono.zip(
+                            Mono.zip(Mono.just(tuple.getT1()), Mono.just(tuple.getT2()), eventTicketFields),
+                            Mono.zip(points, vouchers)
+                    );
+                })
+                .flatMap(tuple -> {
+                    if (tuple.getT2().getT2().size() != request.getVoucherCodes().size()) {
+                        return WebHolder
+                                .getTransaction()
+                                .doOnNext(TransactionExecution::setRollbackOnly)
+                                .then(Mono.error(new VoucherNotFoundException()));
+                    }
+
+                    List<UUID> voucherIds = request
+                            .getVoucherCodes()
+                            .stream()
+                            .flatMap(code -> tuple
+                                    .getT2()
+                                    .getT2()
+                                    .stream()
+                                    .filter(voucher -> voucher.getCode().equals(code))
+                                    .map(Voucher::getId)
+                            )
+                            .toList();
+                    Mono<List<AccountVoucher>> accountVouchers = accountVoucherRepository.findAllByVoucherIdIn(voucherIds).collectList();
+                    return Mono.zip(
+                            Mono.just(tuple.getT1()),
+                            Mono.zip(Mono.just(tuple.getT2().getT1()), Mono.just(tuple.getT2().getT2()), accountVouchers)
+                    );
+                })
+                .flatMap(tuple -> {
+                    for (EventTicket eventTicket : tuple.getT1().getT2()) {
+                        if (eventTicket.getSlots() > 0) {
+                            eventTicket.setSlots(eventTicket.getSlots() - 1);
+                        } else {
+                            return WebHolder
+                                    .getTransaction()
+                                    .doOnNext(TransactionExecution::setRollbackOnly)
+                                    .then(Mono.error(new TicketSlotInsufficientException()));
+                        }
+                        eventTicket.setIsNew(false);
+                    }
+                    Mono<List<EventTicket>> updatedEventTickets = Mono.just(tuple.getT1().getT2());
+                    return Mono.zip(
+                            Mono.zip(Mono.just(tuple.getT1().getT1()), updatedEventTickets, Mono.just(tuple.getT1().getT3())),
+                            Mono.just(tuple.getT2())
+                    );
+                })
+                .flatMap(tuple -> {
+                    Double totalPrice = tuple
+                            .getT1()
+                            .getT2()
+                            .stream()
+                            .mapToDouble(EventTicket::getPrice)
+                            .sum();
+                    Double totalPoint = request.getPoints();
+                    Double totalVoucher = request
+                            .getVoucherCodes()
+                            .stream()
+                            .flatMap(code -> tuple
+                                    .getT2()
+                                    .getT2()
+                                    .stream()
+                                    .filter(voucher -> voucher.getCode().equals(code))
+                            )
+                            .map(voucher -> 1 - voucher.getVariableAmount())
+                            .reduce(1.0, (a, b) -> a * b);
+                    Double priceDeductedByPoint = Math.max(totalPrice - totalPoint, 0.0);
+                    Double usedPoint = totalPrice - priceDeductedByPoint;
+                    Double priceDeductedByVoucher = Math.max(priceDeductedByPoint * totalVoucher, 0.0);
+
+                    List<TransactionPoint> transactionPoints = new ArrayList<>();
+                    Double usedPointRemaining = usedPoint;
+                    for (Point point : tuple.getT2().getT1()) {
+                        if (usedPointRemaining > 0) {
+                            Double currentPoint = Math.min(usedPointRemaining, point.getFixedAmount());
+                            usedPointRemaining -= currentPoint;
+                            transactionPoints.add(TransactionPoint
+                                    .builder()
+                                    .id(UUID.randomUUID())
+                                    .transactionId(null)
+                                    .pointId(point.getId())
+                                    .fixedAmount(currentPoint)
+                                    .build()
+                            );
+                            point.setFixedAmount(point.getFixedAmount() - currentPoint);
+                        }
+                        point.setIsNew(false);
+                    }
+
+                    if (usedPointRemaining > 0) {
+                        return WebHolder
+                                .getTransaction()
+                                .doOnNext(TransactionExecution::setRollbackOnly)
+                                .then(Mono.error(new PointInsufficientException()));
+                    }
+
+                    for (AccountVoucher accountVoucher : tuple.getT2().getT3()) {
+                        if (accountVoucher.getQuantity() > 0) {
+                            accountVoucher.setQuantity(accountVoucher.getQuantity() - 1);
+                        } else {
+                            return WebHolder
+                                    .getTransaction()
+                                    .doOnNext(TransactionExecution::setRollbackOnly)
+                                    .then(Mono.error(new VoucherQuantityInsufficientException()));
+                        }
+                        accountVoucher.setIsNew(false);
+                    }
+
+                    Mono<List<Point>> updatedPoints = Mono.just(tuple.getT2().getT1());
+                    Mono<List<AccountVoucher>> updatedAccountVouchers = Mono.just(tuple.getT2().getT3());
+                    Mono<Double> finalPrice = Mono.just(priceDeductedByVoucher);
+
+                    return Mono.zip(
+                            Mono.just(tuple.getT1()),
+                            Mono.zip(updatedPoints, Mono.just(transactionPoints), Mono.just(tuple.getT2().getT2()), updatedAccountVouchers, finalPrice)
+                    );
+                })
+                .flatMap(tuple -> {
+                    Transaction newTransaction = Transaction
+                            .builder()
+                            .id(UUID.randomUUID())
+                            .accountId(authenticatedAccount.getId())
+                            .eventId(tuple.getT1().getT1().getId())
+                            .time(OffsetDateTime.now().truncatedTo(ChronoUnit.MICROS))
+                            .build();
+
+                    List<TransactionVoucher> transactionVouchers = tuple
+                            .getT2()
+                            .getT4()
+                            .stream()
+                            .map(accountVoucher -> TransactionVoucher
+                                    .builder()
+                                    .id(UUID.randomUUID())
+                                    .transactionId(newTransaction.getId())
+                                    .voucherId(accountVoucher.getVoucherId())
+                                    .quantity((int) request
+                                            .getVoucherCodes()
+                                            .stream()
+                                            .flatMap(code -> tuple
+                                                    .getT2()
+                                                    .getT3()
+                                                    .stream()
+                                                    .filter(voucher -> voucher.getCode().equals(code))
+                                            )
+                                            .count()
+                                    )
+                                    .build()
+                            )
+                            .toList();
+
+                    List<TransactionTicketField> transactionTicketFields = request
+                            .getTransactionTickets()
+                            .stream()
+                            .flatMap(transactionTicket -> transactionTicket
+                                    .getFields()
+                                    .stream()
+                                    .map(field -> tuple
+                                            .getT1()
+                                            .getT3()
+                                            .stream()
+                                            .filter(eventTicketField -> eventTicketField.getEventTicketId().equals(transactionTicket.getEventTicketId()))
+                                            .filter(eventTicketField -> eventTicketField.getKey().equals(field.getKey()))
+                                            .findFirst()
+                                            .map(eventTicketField -> TransactionTicketField
+                                                    .builder()
+                                                    .id(UUID.randomUUID())
+                                                    .transactionId(newTransaction.getId())
+                                                    .eventTicketFieldId(eventTicketField.getId())
+                                                    .value(field.getValue())
+                                                    .build()
+                                            )
+                                            .orElseThrow()
+                                    )
+                            )
+                            .toList();
+
+                    List<TransactionPoint> transactionPoints = tuple
+                            .getT2()
+                            .getT2()
+                            .stream()
+                            .map(transactionPoint -> transactionPoint.setTransactionId(newTransaction.getId()))
+                            .toList();
+
+                    Mono<Transaction> createdTransaction = Mono.just(newTransaction);
+                    Mono<List<TransactionPoint>> createdTransactionPoints = Mono.just(transactionPoints);
+                    Mono<List<TransactionVoucher>> createdTransactionVouchers = Mono.just(transactionVouchers);
+                    Mono<List<TransactionTicketField>> createdTransactionTicketFields = Mono.just(transactionTicketFields);
+                    return Mono.zip(
+                            Mono.just(tuple.getT1()),
+                            Mono.just(tuple.getT2()),
+                            Mono.zip(createdTransaction, createdTransactionVouchers, createdTransactionTicketFields, createdTransactionPoints)
+                    );
+                })
+                .map(tuple -> {
+                    List<TransactionTicketCheckoutResponse> transactionTickets = tuple
+                            .getT1()
+                            .getT2()
+                            .stream()
+                            .map(eventTicket -> TransactionTicketCheckoutResponse
+                                    .builder()
+                                    .id(eventTicket.getId())
+                                    .eventTicketId(eventTicket.getId())
+                                    .fields(request
+                                            .getTransactionTickets()
+                                            .stream()
+                                            .filter(transactionTicket -> transactionTicket.getEventTicketId().equals(eventTicket.getId()))
+                                            .flatMap(transactionTicket -> transactionTicket
+                                                    .getFields()
+                                                    .stream()
+                                                    .map(field -> TransactionTicketFieldCheckoutResponse
+                                                            .builder()
+                                                            .key(field.getKey())
+                                                            .value(field.getValue())
+                                                            .build()
+                                                    )
+                                            )
+                                            .toList()
+                                    )
+                                    .build()
+                            )
+                            .toList();
+                    return TransactionCheckoutResponse
+                            .builder()
+                            .id(tuple.getT3().getT1().getId())
+                            .eventId(tuple.getT1().getT1().getId())
+                            .transactionTickets(transactionTickets)
+                            .voucherCodes(request.getVoucherCodes())
+                            .points(request.getPoints())
+                            .finalPrice(tuple.getT2().getT5())
+                            .build();
+                })
+                .doOnNext(transactionCheckoutResponse -> WebHolder
+                        .getTransaction()
+                        .doOnNext(TransactionExecution::setRollbackOnly)
                 );
     }
 }
